@@ -32,7 +32,7 @@ class Space:
             force=normal*(acceleration_base+acceleration_per_unit_overlap*penetration)*reduced_mass
             object1.apply_force(-force,contact_point)
             object2.apply_force(force,contact_point)
-            print("contact!")
+            #print("contact!")
             
             
             

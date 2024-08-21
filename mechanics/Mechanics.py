@@ -68,13 +68,23 @@ class ExtendedBody2D:
         return 0
     
 class CircleBody2D(ExtendedBody2D):
-    def __init__(self, radius=1,position=Vector2D(0,0), velocity=Vector2D(0,0), mass=1, moment_of_inertia=1,angle=0,angular_velocity=0):
+    def __init__(self, radius=1,position=Vector2D(0,0), velocity=Vector2D(0,0), mass=1, moment_of_inertia=None,angle=0,angular_velocity=0):
+        if moment_of_inertia is None: #solid circle
+            moment_of_inertia=0.5*mass*radius**2
         super().__init__(position,velocity,mass,moment_of_inertia,angle,angular_velocity)
         self.radius=radius    
 
     def get_interaction_distance(self):
         return self.radius
 
+class RectBody2D(ExtendedBody2D):
+    def __init__(self, width=1, height=1, position=Vector2D(0,0), velocity=Vector2D(0,0), mass=1, moment_of_inertia=1,angle=0,angular_velocity=0):
+        super().__init__(position,velocity,mass,moment_of_inertia,angle,angular_velocity)
+        self.width=width
+        self.height=height
+
+    def get_interaction_distance(self):
+        return (self.width**2+self.height**2)**0.5/2
 
 class CompositeBody2D(ExtendedBody2D):
     def __init__(self):
@@ -90,14 +100,16 @@ class CompositeBody2D(ExtendedBody2D):
     def recalculate_eveything(self):
         self.mass=sum([body.get_mass() for body in self.bodies])
         self.moment_of_inertia=0
-        for body in self.bodies:
-            #Ahh, the parallel axis theorem
-            self.moment_of_inertia+=body.get_moment_of_inertia()+body.get_mass()*body.get_position().magnitude_squared()
-
+        #center of mass
         x=Vector2D(0,0)
         for body in self.bodies:
             x+=body.get_position()*body.get_mass()
         self.position=x/self.mass
+        #moment of inertia
+        for body in self.bodies:
+            #Ahh, the parallel axis theorem
+            self.moment_of_inertia+=body.get_moment_of_inertia()+body.get_mass()*(body.get_position()-self.position).magnitude_squared()
+        #interaction distance        
         for body in self.bodies:
             interaction_distance=(body.get_position()-self.get_position()).magnitude()+body.get_interaction_distance()
             if interaction_distance>self.interaction_distance:
@@ -119,6 +131,12 @@ class CompositeBody2D(ExtendedBody2D):
 
     def get_interaction_distance(self):
         return self.interaction_distance
+    
+def get_contacts_rect_circle(rect, circle):
+    ...
+
+def get_contacts_rect_circle(rect, circle):
+    ...
 
 #get contacts between two bodies
 #response is list of [contact_point, normal, penetration]
@@ -136,6 +154,12 @@ def get_contacts(body1, body2):
         norm=dx.normalized()
         contact_point=body1.get_position()+(body1.radius-0.5*penetration)*norm
         return [ (contact_point,norm,penetration) ]                    
+    if isinstance(body1, CircleBody2D) and isinstance(body2, RectBody2D):        
+        return get_contacts_rect_circle(body2,body1)
+    if isinstance(body1, RectBody2D) and isinstance(body2, CircleBody2D):
+        return get_contacts_rect_circle(body1,body2)
+    if isinstance(body1, RectBody2D) and isinstance(body2, RectBody2D):
+        return get_contacts_rect_rect(body1,body2)
     elif isinstance(body1, CompositeBody2D):
         contacts=[]
         for body in body1.bodies:

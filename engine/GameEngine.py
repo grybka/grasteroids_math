@@ -11,9 +11,9 @@ class GameEngine:
         self.ship=CircleBody2D(position=Vector2D(0,0),velocity=Vector2D(0,0),mass=1,radius=10)
         my_target=CompositeBody2D()
         my_target.add_body(CircleBody2D(position=Vector2D(100,0),mass=0.25,radius=10))
-        my_target.add_body(CircleBody2D(position=Vector2D(110,0),mass=0.25,radius=10))
+        my_target.add_body(CircleBody2D(position=Vector2D(140,0),mass=0.25,radius=10))
         my_target.add_body(CircleBody2D(position=Vector2D(100,40),mass=0.25,radius=10))
-        my_target.add_body(CircleBody2D(position=Vector2D(110,40),mass=0.25,radius=10))
+        my_target.add_body(CircleBody2D(position=Vector2D(140,40),mass=0.25,radius=10))
         self.target=my_target
 
         #self.target=CircleBody2D(position=Vector2D(100,15),velocity=Vector2D(0,0),mass=1,radius=10)        
@@ -33,6 +33,9 @@ class GameEngine:
         if self.report_timer>self.report_interval:
             #print("ship position: ",self.ship.get_position())
             print("target angle: ",self.target.get_angle())
+            print("target position: ",self.target.get_position())  
+            print("target moment of inertia: ",self.target.moment_of_inertia)
+            print("target mass ",self.target.mass)
             self.report_timer=0
 
     def draw(self,screen):
