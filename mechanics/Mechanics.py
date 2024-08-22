@@ -77,15 +77,35 @@ class CircleBody2D(ExtendedBody2D):
     def get_interaction_distance(self):
         return self.radius
 
-class RectBody2D(ExtendedBody2D):
-    def __init__(self, width=1, height=1, position=Vector2D(0,0), velocity=Vector2D(0,0), mass=1, moment_of_inertia=1,angle=0,angular_velocity=0):
+class PolygonBody2D(ExtendedBody2D):
+    def __init__(self, position=Vector2D(0,0), velocity=Vector2D(0,0), mass=1, moment_of_inertia=1,angle=0,angular_velocity=0,vertices=[]):
         super().__init__(position,velocity,mass,moment_of_inertia,angle,angular_velocity)
-        self.width=width
-        self.height=height
+        self.vertices=vertices #vertices are relative to center
+        self.get_interaction_distance=max([v.magnitude() for v in self.vertices])
+
+    def get_edges(self): #get edge world coordinates.  List of [ (x1,y1), (x2,y2) ]
+        edges=[]
+        for i in range(len(self.vertices)):
+            v1=self.vertices[i]
+            v2=self.vertices[(i+1)%len(self.vertices)]
+            edges.append( (self.get_position()+v1, self.get_position()+v2) )
+        return edges
+
+    def point_inside(self,x):
+        #assume x is in the same coordinate system as the polygon
+        #assume the polygon is convex
+        #assume the vertices are in counterclockwise order
+        for i in range(len(self.vertices)):
+            v1=self.vertices[i]
+            v2=self.vertices[(i+1)%len(self.vertices)]
+            if (x-v1).cross(v2-v1)<0:
+                return False
+        return True
+    
 
     def get_interaction_distance(self):
-        return (self.width**2+self.height**2)**0.5/2
-
+        return self.get_interaction_distance
+    
 class CompositeBody2D(ExtendedBody2D):
     def __init__(self):
         super().__init__()
@@ -132,11 +152,23 @@ class CompositeBody2D(ExtendedBody2D):
     def get_interaction_distance(self):
         return self.interaction_distance
     
-def get_contacts_rect_circle(rect, circle):
-    ...
+def get_contacts_poly_poly(body1, body2):
+    return []
 
-def get_contacts_rect_circle(rect, circle):
-    ...
+def get_contacts_poly_circle(poly, circle):
+    edges=poly.get_edges()
+    contacts=[]
+    for edge in edges:
+        edgevec=edge[1]-edge[0]
+        normal=Vector2D(-edgevec.y,edgevec.x).normalized()
+        distance=(circle.get_position()-edge[0]).dot(normal)
+        if distance>circle.radius:
+            continue
+        
+
+        
+
+    return []
 
 #get contacts between two bodies
 #response is list of [contact_point, normal, penetration]
@@ -154,12 +186,12 @@ def get_contacts(body1, body2):
         norm=dx.normalized()
         contact_point=body1.get_position()+(body1.radius-0.5*penetration)*norm
         return [ (contact_point,norm,penetration) ]                    
-    if isinstance(body1, CircleBody2D) and isinstance(body2, RectBody2D):        
-        return get_contacts_rect_circle(body2,body1)
-    if isinstance(body1, RectBody2D) and isinstance(body2, CircleBody2D):
-        return get_contacts_rect_circle(body1,body2)
-    if isinstance(body1, RectBody2D) and isinstance(body2, RectBody2D):
-        return get_contacts_rect_rect(body1,body2)
+    if isinstance(body1, CircleBody2D) and isinstance(body2, PolygonBody2D):        
+        return get_contacts_poly_circle(body2,body1)
+    if isinstance(body1, PolygonBody2D) and isinstance(body2, CircleBody2D):
+        return get_contacts_poly_circle(body1,body2)
+    if isinstance(body1, PolygonBody2D) and isinstance(body2, PolygonBody2D):
+        return get_contacts_poly_poly(body1,body2)
     elif isinstance(body1, CompositeBody2D):
         contacts=[]
         for body in body1.bodies:
