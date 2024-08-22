@@ -27,9 +27,12 @@ class Space:
         reduced_mass=1/(1/object1.get_mass()+1/object2.get_mass())
         acceleration_base=50
         acceleration_per_unit_overlap=50
+        #print("n contacts: ",len(contacts))
         for contact in contacts:
+            weight=1/len(contacts)
+            #print("contact point: ",contact)
             contact_point, normal, penetration=contact
-            force=normal*(acceleration_base+acceleration_per_unit_overlap*penetration)*reduced_mass
+            force=weight*normal*(acceleration_base+acceleration_per_unit_overlap*penetration)*reduced_mass
             object1.apply_force(-force,contact_point)
             object2.apply_force(force,contact_point)
             #print("contact!")

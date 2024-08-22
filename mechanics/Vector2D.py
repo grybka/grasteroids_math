@@ -32,6 +32,9 @@ class Vector2D:
         else:
             self.y = value
 
+    def __repr__(self) -> str:
+        return self.__str__()
+
     def __str__(self):
         return "({},{})".format(self.x, self.y)
     
@@ -67,3 +70,18 @@ class Vector2D:
     
     def to_int_tuple(self):
         return (int(self.x), int(self.y))
+    
+#returns the distance between a point and an infinite line
+#positive is to the right, negative to the left
+def point_distance_to_line(line,point):
+    line_right_normal=Vector2D(-line[1].y,line[1].x).normalized()
+    return (point-line[0]).dot(line_right_normal)
+
+#returns the fractional distance along a line that is closest to a point
+def closest_point_on_line_fractional(line,point):
+    lamda=(point-line[0]).dot(line[1]-line[0])/(line[1]-line[0]).magnitude_squared()
+    if lamda<0:
+        return 0
+    if lamda>1:
+        return 1
+    return lamda

@@ -37,12 +37,21 @@ class CircleSprite(DrawableSprite):
     def blit(self,screen,camera):
         pos=camera.get_screen_position(self.world_position)
         pygame.draw.circle(screen,self.color,pos,self.radius*camera.zoom)        
-        #side=int(math.ceil(max(self.radius,1)))*2
-        #surf=pygame.Surface((side,side),flags=pygame.SRCALPHA)
-        #surf.set_colorkey((0,0,0))
-        #surf.fill((0,0,0))
-        #pygame.draw.circle(surf,self.color,(self.radius,self.radius),self.radius)
-        #return surf
+
+class PolygonSprite(DrawableSprite):
+    def __init__(self,vertices=[],color=(255,255,255),world_position=Vector2D(0,0),angle=0):
+        DrawableSprite.__init__(self,world_position)        
+        self.vertices=vertices #in game units
+        self.color=color
+        self.angle=angle
+
+    def set_vertices(self,vertices):
+        self.vertices=vertices
+    
+    def blit(self,screen,camera):
+        pos=camera.get_screen_position(self.world_position)
+        vertices=[camera.get_screen_position(self.world_position+v.rotated_by(self.angle)) for v in self.vertices]
+        pygame.draw.polygon(screen,self.color,vertices)
     
 class CompositeSprite(DrawableSprite):
     def __init__(self):

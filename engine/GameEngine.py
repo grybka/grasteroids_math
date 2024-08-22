@@ -8,13 +8,16 @@ from sprites.GeoSprites import *
 class GameEngine:
     def __init__(self):
         self.space=Space()
-        self.ship=CircleBody2D(position=Vector2D(0,0),velocity=Vector2D(0,0),mass=1,radius=10)
-        my_target=CompositeBody2D()
-        my_target.add_body(CircleBody2D(position=Vector2D(100,0),mass=0.25,radius=10))
-        my_target.add_body(CircleBody2D(position=Vector2D(140,0),mass=0.25,radius=10))
-        my_target.add_body(CircleBody2D(position=Vector2D(100,40),mass=0.25,radius=10))
-        my_target.add_body(CircleBody2D(position=Vector2D(140,40),mass=0.25,radius=10))
-        self.target=my_target
+        #self.ship=CircleBody2D(position=Vector2D(0,0),velocity=Vector2D(0,0),mass=1,radius=10)
+        self.ship=SquareBody2D(position=Vector2D(0,19),mass=1,radius=10,angle=0)
+        target_triangle=SquareBody2D(position=Vector2D(100,0),mass=1,radius=20,angle=0)
+        #my_target=CompositeBody2D()
+        #my_target.add_body(CircleBody2D(position=Vector2D(100,0),mass=0.25,radius=10))
+        #my_target.add_body(CircleBody2D(position=Vector2D(140,0),mass=0.25,radius=10))
+        #my_target.add_body(CircleBody2D(position=Vector2D(100,40),mass=0.25,radius=10))
+        #my_target.add_body(CircleBody2D(position=Vector2D(140,40),mass=0.25,radius=10))
+        #self.target=my_target
+        self.target=target_triangle
 
         #self.target=CircleBody2D(position=Vector2D(100,15),velocity=Vector2D(0,0),mass=1,radius=10)        
         self.space.add_body(self.ship)
@@ -24,10 +27,11 @@ class GameEngine:
 
         self.thrust=Vector2D(0,0)    
         self.report_timer=0
-        self.report_interval=1000
+        self.report_interval=2000
 
     def update(self,ticks):
-        self.ship.apply_force(self.thrust,self.ship.get_position())
+        if self.thrust.magnitude()>0:
+            self.ship.apply_force(self.thrust,self.ship.get_position())
         self.space.update(ticks/1000.0)        
         self.report_timer+=ticks
         if self.report_timer>self.report_interval:
