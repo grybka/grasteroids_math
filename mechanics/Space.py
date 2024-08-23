@@ -27,6 +27,23 @@ class Space:
         contacts=get_contacts(object1,object2)
         if len(contacts)==0:
             return #no interaction
+        #second thought on forces
+        #I should set a timescale for a collision.  Let's say 3 units of dt each of 1/60 seconds, which is to say 0.05 seconds
+        #so in a reduced mass frame, a~=2v/dt 
+        dt=0.05
+        reduced_mass=1/(1/object1.get_mass()+1/object2.get_mass())
+        deltav=object1.get_velocity()-object2.get_velocity()
+        a=2*deltav.magnitude()/dt
+        for contact in contacts:
+            weight=1/len(contacts)
+            #print("contact point: ",contact)
+            contact_point, normal, penetration,body1,body2=contact
+            force=weight*normal*a*reduced_mass
+            body1.apply_force(-force,contact_point)
+            body2.apply_force(force,contact_point)
+
+
+"""
         #For overlaps, the force will be proportional to the reduced mass
         reduced_mass=1/(1/object1.get_mass()+1/object2.get_mass())
         acceleration_base=50
@@ -42,7 +59,7 @@ class Space:
             #object1.apply_force(-force,contact_point)
             #object2.apply_force(force,contact_point)
             #print("contact!")
-            
+"""            
             
             
 

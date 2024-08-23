@@ -53,6 +53,8 @@ class ExtendedBody2D(Particle2D):
         self.forces=[] #list of (force,location)
         self.torque=0
         self.interaction_distance=0
+        self.last_acceleration=Vector2D(0,0)
+        self.last_alpha=0
         
     def get_mass(self):
         return self.mass
@@ -66,37 +68,37 @@ class ExtendedBody2D(Particle2D):
         #self.force += force
         #self.apply_torque( (location-self.get_position()).cross(force) )
 
-    def get_net_force(self):
-        ret=Vector2D(0,0)
-        for force,location in self.forces:
-            ret+=force
-        return ret
-
     def apply_torque(self, torque):
         #print("torque applied: ",torque)
         self.torque += torque
 
+    #return net force on cm, and net torque
     def resolve_forces(self):
-        ret=Vector2D(0,0)        
+        net_force=Vector2D(0,0)
+        net_torque=0
         for force,location in self.forces:
-            ret+=force
-            self.torque+=(location-self.get_position()).cross(force)
-        self.forces=[]
-        return ret
+            net_force+=force
+            net_torque+=(location-self.get_position()).cross(force)
+        return net_force,net_torque    
 
     def update(self,dt):
-        total_force=self.resolve_forces()
+        net_force,net_torque=self.resolve_forces()        
+        self.apply_torque(net_torque)
         x0=self.get_position()
         v0=self.get_velocity()
-        a=total_force/self.mass
+        self.last_acceleration=net_force/self.mass
         omega=self.get_angular_velocity()
-        alpha=self.torque/self.moment_of_inertia
-        self.set_position(x0+v0*dt+0.5*a*dt**2)
-        self.set_velocity(v0+a*dt)
-        self.set_angle(self.get_angle()+omega*dt+0.5*alpha*dt**2)        
-        self.set_angular_velocity(omega+alpha*dt)
-        #self.force=Vector2D(0,0)
+        self.last_alpha=self.torque/self.moment_of_inertia
+        self.set_position(x0+v0*dt+0.5*self.last_acceleration*dt**2)
+        self.set_velocity(v0+self.last_acceleration*dt)
+        self.set_angle(self.get_angle()+omega*dt+0.5*self.last_alpha*dt**2)        
+        self.set_angular_velocity(omega+self.last_alpha*dt)
+        self.forces=[]
         self.torque=0
+
+    def get_acceleration_at_point(self,point):
+        #TODO add angular velocity
+        return self.last_acceleration+self.last_alpha*(point-self.get_position()).magnitude()*Vector2D(0,1).rotated_by(self.get_angle())
 
     def get_interaction_distance(self):
         return self.interaction_distance
@@ -178,6 +180,9 @@ class CompositeBody2D(ExtendedBody2D):
         self.bodies=[]
         self.radius=0
         self.interaction_distance=0
+        #The position of the composite body is the position of the center of mass
+        #Each sub object's position is world position, not relative position
+        #but each sub objects sub angle is relative angle.  yikes
 
     def add_body(self, body):
         self.bodies.append(body)
@@ -189,7 +194,7 @@ class CompositeBody2D(ExtendedBody2D):
         #center of mass
         x=Vector2D(0,0)
         for body in self.bodies:
-            x+=body.get_position()*body.get_mass()
+            x+=body.get_position()*body.get_mass()        
         self.position=x/self.mass
         #moment of inertia
         for body in self.bodies:
@@ -222,19 +227,21 @@ class CompositeBody2D(ExtendedBody2D):
         #extract forces from subobjects
         for body in self.bodies:                        
             for force,location in body.forces:                
-                self.apply_force(force,location)                        
-        f_net=self.get_net_force()
-        a_net=f_net/self.mass
-        for body in self.bodies:
-            body_force=body.get_net_force()
-            body_a=body_force/body.get_mass()
-            force_between=(a_net-body_a)*body.get_mass()
-            #TODO is this a compression force or a tension force?
-            if force_between.magnitude()>0:
-                ...
-                print("force between: ",force_between.magnitude())            
-            body.forces=[]
+                self.apply_force(force,location)                                
+        #figure out what the whole object acceleration and angular acceleration is
         super().update(dt)
+        #now check out whether any of the bodies break off        
+        for body in self.bodies:
+            #acceleration at body's center
+            a=self.get_acceleration_at_point(body.get_position())
+            force=a*body.get_mass()
+            body_force,body_torque=body.resolve_forces()
+            delta=body_force-force
+            if delta.magnitude()>1e-6:
+                print("force mismatch: ",delta.magnitude())
+            body.forces=[]
+            body.torque=0
+        
     
 
 def get_contacts_poly_poly_oneway(body1, body2,normal_sign=1):

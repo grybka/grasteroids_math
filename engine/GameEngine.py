@@ -10,9 +10,9 @@ class GameEngine:
     def __init__(self,clock):
         self.clock=clock
         self.space=Space()
-        #self.ship=CircleBody2D(position=Vector2D(0,0),velocity=Vector2D(0,0),mass=1,radius=10)
+        self.ship=CircleBody2D(position=Vector2D(0,0),velocity=Vector2D(0,0),mass=1,radius=10)
         #self.ship=SquareBody2D(position=Vector2D(0,19),mass=1,radius=10,angle=0)
-        self.ship=EquilateralTriangleBody2D(radius=10)
+        #self.ship=EquilateralTriangleBody2D(radius=10)
         self.ship.set_velocity(Vector2D(20,0))
         #target_triangle=SquareBody2D(position=Vector2D(100,0),mass=1,radius=20,angle=0)
         #my_target=CompositeBody2D()
@@ -23,7 +23,7 @@ class GameEngine:
         #self.target=my_target
         #self.target=target_triangle
         self.target=Asteroid()
-        self.target.set_position(Vector2D(100,40))
+        self.target.set_position(Vector2D(100,0))
 
         #self.target=CircleBody2D(position=Vector2D(100,15),velocity=Vector2D(0,0),mass=1,radius=10)        
         self.space.add_body(self.ship)
