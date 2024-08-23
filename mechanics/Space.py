@@ -13,9 +13,13 @@ class Space:
         self.bodies.append(object)
 
     def update(self, dt):
+        #calculate interaction forces
         for i in range(len(self.bodies)):
             for j in range(i+1, len(self.bodies)):
                 self.interact(self.bodies[i], self.bodies[j])
+        #deal with internal forces
+
+        #update kinematics
         for body in self.bodies:
             body.update(dt)
 
@@ -31,10 +35,12 @@ class Space:
         for contact in contacts:
             weight=1/len(contacts)
             #print("contact point: ",contact)
-            contact_point, normal, penetration=contact
+            contact_point, normal, penetration,body1,body2=contact
             force=weight*normal*(acceleration_base+acceleration_per_unit_overlap*penetration)*reduced_mass
-            object1.apply_force(-force,contact_point)
-            object2.apply_force(force,contact_point)
+            body1.apply_force(-force,contact_point)
+            body2.apply_force(force,contact_point)
+            #object1.apply_force(-force,contact_point)
+            #object2.apply_force(force,contact_point)
             #print("contact!")
             
             

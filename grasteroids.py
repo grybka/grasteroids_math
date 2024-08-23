@@ -6,7 +6,8 @@ from engine.GameEngine import GameEngine
 pygame.init()
 pygame.font.init()
 
-engine=GameEngine()
+clock=pygame.time.Clock()
+engine=GameEngine(clock)
 
 
 #set up the window to draw
@@ -20,7 +21,7 @@ if displayinfo.current_h*0.8<max_y:
 resolution=(max_x,max_y)
 screen=pygame.display.set_mode(resolution)
 
-clock=pygame.time.Clock()
+
 
 #loop through game engine
 running=True

@@ -1,24 +1,12 @@
 from mechanics.Vector2D import Vector2D, point_distance_to_line,closest_point_on_line_fractional
 import math
 
-class ExtendedBody2D:
-    def __init__(self, position=Vector2D(0,0), velocity=Vector2D(0,0), mass=1, moment_of_inertia=1,angle=0,angular_velocity=0):
-        super().__init__()
-        self.mass = mass
-        self.moment_of_inertia = moment_of_inertia
+class Particle2D:
+    def __init__(self, position=Vector2D(0,0), velocity=Vector2D(0,0), angle=0, angular_velocity=0):
         self.position = position
-        self.velocity = velocity        
+        self.velocity = velocity     
         self.angle = angle
         self.angular_velocity = angular_velocity
-        self.force = Vector2D(0,0)
-        self.torque=0        
-        self.interaction_distance=0
-        
-    def get_mass(self):
-        return self.mass
-    
-    def get_moment_of_inertia(self):
-        return self.moment_of_inertia
 
     def get_position(self):
         return self.position
@@ -42,28 +30,72 @@ class ExtendedBody2D:
         return self.angular_velocity
     
     def set_angular_velocity(self, angular_velocity):
+        self.angular_velocity = angular_velocity   
+
+    def update(self,dt):
+        x0=self.get_position()
+        v0=self.get_velocity()
+        omega=self.get_angular_velocity()
+        self.set_position(x0+v0*dt)
+        self.set_angle(self.get_angle()+omega*dt+0.5*alpha*dt**2)        
+        self.set_angular_velocity(omega)
+
+class ExtendedBody2D(Particle2D):
+    def __init__(self, position=Vector2D(0,0), velocity=Vector2D(0,0), mass=1, moment_of_inertia=1,angle=0,angular_velocity=0):
+        super().__init__()
+        self.mass = mass
+        self.moment_of_inertia = moment_of_inertia
+        self.position = position
+        self.velocity = velocity        
+        self.angle = angle
         self.angular_velocity = angular_velocity
+        #self.force = Vector2D(0,0)        
+        self.forces=[] #list of (force,location)
+        self.torque=0
+        self.interaction_distance=0
+        
+    def get_mass(self):
+        return self.mass
+    
+    def get_moment_of_inertia(self):
+        return self.moment_of_inertia
 
     def apply_force(self, force, location):
         #print("force applied: ",force)
-        self.force += force
-        self.apply_torque( (location-self.get_position()).cross(force) )
+        self.forces.append( (force,location) )
+        #self.force += force
+        #self.apply_torque( (location-self.get_position()).cross(force) )
+
+    def get_net_force(self):
+        ret=Vector2D(0,0)
+        for force,location in self.forces:
+            ret+=force
+        return ret
 
     def apply_torque(self, torque):
         #print("torque applied: ",torque)
         self.torque += torque
 
+    def resolve_forces(self):
+        ret=Vector2D(0,0)        
+        for force,location in self.forces:
+            ret+=force
+            self.torque+=(location-self.get_position()).cross(force)
+        self.forces=[]
+        return ret
+
     def update(self,dt):
+        total_force=self.resolve_forces()
         x0=self.get_position()
         v0=self.get_velocity()
-        a=self.force/self.mass
+        a=total_force/self.mass
         omega=self.get_angular_velocity()
         alpha=self.torque/self.moment_of_inertia
         self.set_position(x0+v0*dt+0.5*a*dt**2)
         self.set_velocity(v0+a*dt)
         self.set_angle(self.get_angle()+omega*dt+0.5*alpha*dt**2)        
         self.set_angular_velocity(omega+alpha*dt)
-        self.force=Vector2D(0,0)
+        #self.force=Vector2D(0,0)
         self.torque=0
 
     def get_interaction_distance(self):
@@ -186,6 +218,24 @@ class CompositeBody2D(ExtendedBody2D):
     def get_interaction_distance(self):
         return self.interaction_distance
     
+    def update(self,dt):
+        #extract forces from subobjects
+        for body in self.bodies:                        
+            for force,location in body.forces:                
+                self.apply_force(force,location)                        
+        f_net=self.get_net_force()
+        a_net=f_net/self.mass
+        for body in self.bodies:
+            body_force=body.get_net_force()
+            body_a=body_force/body.get_mass()
+            force_between=(a_net-body_a)*body.get_mass()
+            #TODO is this a compression force or a tension force?
+            if force_between.magnitude()>0:
+                ...
+                print("force between: ",force_between.magnitude())            
+            body.forces=[]
+        super().update(dt)
+    
 
 def get_contacts_poly_poly_oneway(body1, body2,normal_sign=1):
     contacts = []
@@ -195,7 +245,7 @@ def get_contacts_poly_poly_oneway(body1, body2,normal_sign=1):
         #    contacts.append( (vertex,-normal_sign*delta.normalized(),0) )
         norm,d=body2.point_inside_norm(vertex)
         if norm is not None:
-            contacts.append( (vertex,normal_sign*norm,d) )
+            contacts.append( (vertex,normal_sign*norm,d,body1,body2) )
     return contacts
 
 def get_contacts_poly_poly(body1, body2):
@@ -215,7 +265,7 @@ def get_contacts_poly_circle(poly, circle):
         dist_squared=(pt-circle.get_position()).magnitude_squared()
         if dist_squared<=circle.radius**2:
             norm=(pt-circle.get_position()).normalized()
-            contacts.append( (pt,norm,circle.radius-math.sqrt(dist_squared)) )     
+            contacts.append( (pt,-norm,circle.radius-math.sqrt(dist_squared),poly,circle) )     
     return contacts
 
 #get contacts between two bodies
@@ -233,7 +283,7 @@ def get_contacts(body1, body2):
             return []
         norm=dx.normalized()
         contact_point=body1.get_position()+(body1.radius-0.5*penetration)*norm
-        return [ (contact_point,norm,penetration) ]                    
+        return [ (contact_point,norm,penetration,body1,body2) ]                    
     if isinstance(body1, CircleBody2D) and isinstance(body2, PolygonBody2D):        
         return get_contacts_poly_circle(body2,body1)
     if isinstance(body1, PolygonBody2D) and isinstance(body2, CircleBody2D):
