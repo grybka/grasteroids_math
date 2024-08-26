@@ -75,7 +75,38 @@ class ReactionWheel(ShipPart):
                 total_torque=0
             ship.body.torque+=total_torque
     
-    
+class ManeuverThruster(ShipPart):
+    def __init__(self,**kwargs):
+        self.attachment=(0,0)        
+        attachment=kwargs.pop("attachment")
+        direction=kwargs.pop("direction",None)
+        ShipPart.__init__(self,Vector2D(0,0))        
+        self.thruster_1=Thruster(attachment=Vec2d(0,attachment[1]),direction=Vec2d(0,1),**kwargs)        
+        self.thruster_2=Thruster(attachment=Vec2d(0,-attachment[1]),direction=Vec2d(0,-1),**kwargs)        
+        self.thruster_3=Thruster(attachment=Vec2d(attachment[0],0),direction=Vec2d(1,0),**kwargs)        
+        self.thruster_4=Thruster(attachment=Vec2d(-attachment[0],0),direction=Vec2d(-1,0),**kwargs)
+
+    def set_throttle_ns(self,throttle): #throttle between -1 and 1
+        if throttle>0:
+            self.thruster_2.set_throttle(throttle)
+            self.thruster_1.set_throttle(0)
+        else:
+            self.thruster_2.set_throttle(0)
+            self.thruster_1.set_throttle(-throttle)        
+
+    def set_throttle_ew(self,throttle): #throttle between -1 and 1
+        if throttle>0:
+            self.thruster_4.set_throttle(throttle)
+            self.thruster_3.set_throttle(0)
+        else:
+            self.thruster_4.set_throttle(0)
+            self.thruster_3.set_throttle(-throttle)          
+
+    def update(self,ticks,engine,object):
+        self.thruster_1.update(ticks,engine,object)
+        self.thruster_2.update(ticks,engine,object)
+        self.thruster_3.update(ticks,engine,object)
+        self.thruster_4.update(ticks,engine,object)
 
 
 
@@ -113,6 +144,8 @@ class Ship(GameObject):
         self.ship_parts.append(self.thruster)
         self.reaction_wheel=ReactionWheel(max_torque=2e4)
         self.ship_parts.append(self.reaction_wheel)
+        self.maneuver_thruster=ManeuverThruster(attachment=(self.length_scale,self.length_scale),max_force=2e3)
+        self.ship_parts.append(self.maneuver_thruster)
 
     def update(self,ticks,engine):
         GameObject.update(self,ticks,engine)
