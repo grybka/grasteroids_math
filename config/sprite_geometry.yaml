@@ -1,0 +1,6 @@
+ship1:
+  radius: 51
+  type: circle
+ship2:
+  radius: 62
+  type: circle

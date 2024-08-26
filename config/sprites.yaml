@@ -1,0 +1,6 @@
+ship1:
+  file: "images\\ship_spritesheet.png"
+  rect: [ 0, 0, 256, 256]
+ship2:
+  file: "images\\ship_spritesheet.png"
+  rect: [ 256, 0, 256, 256]
