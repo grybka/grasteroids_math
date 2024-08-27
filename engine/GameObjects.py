@@ -109,11 +109,11 @@ class Decorator:
         return None
     
 class ThrustDecorator(Decorator):
-    def __init__(self,position=Vec2d(0,0),velocity=Vec2d(0,0)):        
+    def __init__(self,position=Vec2d(0,0),velocity=Vec2d(0,0),max_radius=10,lifetime=0.5,color=(255,0,0)):        
         Decorator.__init__(self,position,velocity)
-        self.max_radius=10
-        self.sprite=CircleSprite(self.max_radius,(255,0,0),self.position)
-        self.max_lifetime=0.5
+        self.max_radius=max_radius
+        self.sprite=CircleSprite(self.max_radius,color,self.position)
+        self.max_lifetime=lifetime
         
     def update(self,ticks):
         Decorator.update(self,ticks)

@@ -6,6 +6,8 @@ import pymunk
 
 class GameEngine:
     def __init__(self,clock):
+        self.controller=None
+
         self.clock=clock
         self.space = pymunk.Space()
         self.space.gravity = Vec2d(0.0, 0.0)
@@ -20,7 +22,7 @@ class GameEngine:
         self.add_object(self.my_ship)
         #self.add_object(SquareMagnetile(position=Vec2d(0,100)))
         ...
-        self.thrust=Vec2d(0,0)
+        self.desired_velocity=Vec2d(0,0)
 
     def add_object(self,obj):
         self.space.add(obj.body,obj.shape)
@@ -29,9 +31,26 @@ class GameEngine:
     def add_decorator(self,dec):
         self.decorators.append(dec)
 
+    def update_controls(self):
+        return
+        self.my_ship.set_desired_velocity(self.desired_velocity)
+        if self.controller is not None:
+                axis_dead_zone=0.15
+                #left stick
+                axis0=self.controller.get_axis(0)  
+                axis1=self.controller.get_axis(1)  
+                if abs(axis0)>axis_dead_zone or abs(axis1)>axis_dead_zone:
+                    ...                
+                #right stick
+                axis2=self.controller.get_axis(2)
+                axis3=self.controller.get_axis(3)
+
+                if abs(axis2)>axis_dead_zone or abs(axis3)>axis_dead_zone:
+                    ...
+
     def update(self,ticks):
         #update controls
-        #self.my_ship.body.apply_force_at_world_point(self.thrust,self.my_ship.body.position)   
+        self.update_controls()        
 
         #update objects
         for obj in self.objects:
@@ -62,6 +81,7 @@ class GameEngine:
             self.report_timer=0
 
     def draw(self,screen):
+        self.width,self.height=screen.get_size()
         camera=Camera(screen)
         screen.fill((0,0,0))
                             
@@ -74,14 +94,18 @@ class GameEngine:
     def handle_event(self,event):
         if event.type == pygame.KEYDOWN:
             if event.key == pygame.K_UP:    
-                self.my_ship.thruster.set_throttle(1)            
+                #self.my_ship.thruster.set_throttle(1)            
+                self.my_ship.maneuver_thruster.set_throttle_ns(1)
                 #self.thrust=Vec2d(0,1e5)
             if event.key == pygame.K_DOWN:
-                self.thrust=Vec2d(0,-1e5)                
+                #self.thrust=Vec2d(0,-1e5)              
+                self.my_ship.maneuver_thruster.set_throttle_ns(-1)
             if event.key == pygame.K_LEFT:
-                self.my_ship.reaction_wheel.set_throttle(1)                
+                #self.my_ship.reaction_wheel.set_throttle(1)                
+                self.my_ship.maneuver_thruster.set_throttle_ew(1)
             if event.key == pygame.K_RIGHT:
-                self.my_ship.reaction_wheel.set_throttle(-1)                                
+                self.my_ship.maneuver_thruster.set_throttle_ew(-1)
+                #self.my_ship.reaction_wheel.set_throttle(-1)                                
             if event.key == pygame.K_SPACE:
                 self.my_ship.fire_cannon(self)
         if event.type == pygame.KEYUP:
@@ -92,8 +116,24 @@ class GameEngine:
                  
                 ...
             if event.key == pygame.K_LEFT:
-                self.my_ship.reaction_wheel.set_throttle(0)                                
+                self.my_ship.reaction_wheel.set_throttle(0)     
+                self.my_ship.maneuver_thruster.set_throttle_ew(0)                           
                 ...                     
             if event.key == pygame.K_RIGHT:
-                self.my_ship.reaction_wheel.set_throttle(0)                
+                self.my_ship.reaction_wheel.set_throttle(0)      
+                self.my_ship.maneuver_thruster.set_throttle_ew(0)          
                 ...          
+        if event.type == pygame.MOUSEBUTTONDOWN:
+            if event.button==1:
+                pos=pygame.mouse.get_pos()
+                #print("mouse pos: ",pos)
+                pos=Vec2d(pos[0],-pos[1])
+                arrow=pos-Vec2d(self.width,-self.height)/2                
+                arrow=arrow.normalized()
+                self.desired_velocity=arrow*2
+
+            if event.button==3:
+                ...
+        if event.type == pygame.MOUSEBUTTONUP:
+            if event.button==1:
+                self.desired_velocity=Vec2d(0,0)

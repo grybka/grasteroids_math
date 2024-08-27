@@ -10,6 +10,17 @@ pygame.font.init()
 
 clock=pygame.time.Clock()
 
+#load the controller
+controller=None
+jcount=pygame.joystick.get_count()
+if jcount==0:
+    print("No joysticks found.")
+else:    
+    print("Joysticks found: "+str(jcount))
+    controller = pygame.joystick.Joystick(0)
+    controller.init()
+    axes = controller.get_numaxes()
+    print("number of axes found: "+str(axes))   
 
 
 #set up the window to draw
@@ -33,6 +44,7 @@ get_geometry_store().load_geometry_info("config/sprite_geometry.yaml")
 
 #loop through game engine
 engine=GameEngine(clock)
+engine.controller=controller
 running=True
 while running:
     clock.tick(60)
