@@ -32,8 +32,6 @@ class GameEngine:
         self.decorators.append(dec)
 
     def update_controls(self):
-        return
-        self.my_ship.set_desired_velocity(self.desired_velocity)
         if self.controller is not None:
                 axis_dead_zone=0.15
                 #left stick
@@ -110,9 +108,13 @@ class GameEngine:
                 self.my_ship.fire_cannon(self)
         if event.type == pygame.KEYUP:
             if event.key == pygame.K_UP:
-                self.my_ship.thruster.set_throttle(0)
+                #self.my_ship.thruster.set_throttle(0)
+                self.my_ship.maneuver_thruster.set_throttle_ns(0)
+
                 #self.thrust=Vec2d(0,0)                
             if event.key == pygame.K_DOWN:
+                self.my_ship.maneuver_thruster.set_throttle_ns(0)
+
                  
                 ...
             if event.key == pygame.K_LEFT:
@@ -131,6 +133,8 @@ class GameEngine:
                 arrow=pos-Vec2d(self.width,-self.height)/2                
                 arrow=arrow.normalized()
                 self.desired_velocity=arrow*2
+                self.my_ship.set_desired_velocity(self.desired_velocity)
+
 
             if event.button==3:
                 ...

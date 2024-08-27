@@ -2,113 +2,15 @@ from engine.GameObjects import *
 from pymunk import Vec2d
 from sprites.Sprite import *    
 from sprites.SpriteSheet import get_sprite_store
+from engine.ShipParts import *
+from enum import Enum
 
-
-class ShipPart:
-    def __init__(self,attachement=Vec2d(0,0)):
-        self.attachment=attachement
-
-    def get_attachment(self):
-        return self.attachment
-    
-    def update(self,ticks,engine,ship):
-        pass
-
-class Thruster(ShipPart):
-    def __init__(self,**kwargs):
-        defaultKwargs={"max_force":100,"attachment":Vec2d(0,0),"direction":Vec2d(0,1),"thrust_color":(255,255,0),"thrust_particle_size":10,"thrust_particle_speed":100,"thrust_particle_period":0.1}
-        kwargs = { **defaultKwargs, **kwargs }
-        ShipPart.__init__(self,kwargs["attachment"])
-        self.throttle=0
-        self.max_force=kwargs["max_force"]
-        self.direction=kwargs["direction"] #direction that the thruster points in
-        #regarding thrust particles
-        self.time_since_last_thrust_particle=0
-        self.thrust_particle_period=kwargs["thrust_particle_period"]
-        self.thrust_particle_speed=kwargs["thrust_particle_speed"]
-        self.thrust_particle_size=kwargs["thrust_particle_size"]
-        self.thrust_color=kwargs["thrust_color"]
-
-    def set_throttle(self,throttle): #throttle is a float from 0 to 1
-        self.throttle=throttle
-        if self.throttle>1:
-            self.throttle=1
-        if self.throttle<0:
-            self.throttle=0
-        #print("throttle set to ",self.throttle)
-
-
-    def update(self,ticks,engine,ship):
-        if self.throttle>0:
-            total_force=self.throttle*self.max_force*self.direction
-            ship.body.apply_force_at_local_point(total_force,self.attachment)
-            #thrust particles
-            if self.time_since_last_thrust_particle>self.thrust_particle_period:        
-                self.time_since_last_thrust_particle=0
-                particle=ThrustDecorator(max_radius=self.thrust_particle_size*self.throttle,color=self.thrust_color)
-                particle.set_position(ship.body.position+self.attachment.rotated(ship.body.angle))
-                particle.set_velocity(ship.body.velocity-self.direction.rotated(ship.body.angle)*self.thrust_particle_speed)
-                engine.add_decorator(particle)
-            else:
-                self.time_since_last_thrust_particle+=ticks/1000
-
-class ReactionWheel(ShipPart):
-    def __init__(self,max_torque=100):
-        ShipPart.__init__(self)
-        self.max_torque=max_torque
-        self.throttle=0
-        self.max_angular_velocity=3
-
-    def set_throttle(self,throttle): #throttle is a float from -1 to 1
-        if throttle>1:
-            throttle=1
-        if throttle<-1:
-            throttle=-1
-        self.throttle=throttle    
-
-    def update(self,ticks,engine,ship):
-        if self.throttle!=0:
-            total_torque=self.throttle*self.max_torque
-            if ship.body.angular_velocity>self.max_angular_velocity and total_torque>0:
-                total_torque=0
-            elif ship.body.angular_velocity<-self.max_angular_velocity and total_torque<0:
-                total_torque=0
-            ship.body.torque+=total_torque
-    
-class ManeuverThruster(ShipPart):
-    def __init__(self,**kwargs):
-        self.attachment=(0,0)        
-        attachment=kwargs.pop("attachment")
-        direction=kwargs.pop("direction",None)
-        ShipPart.__init__(self,Vec2d(0,0))        
-        self.thruster_1=Thruster(attachment=Vec2d(0,attachment[1]),direction=Vec2d(0,1),**kwargs)        
-        self.thruster_2=Thruster(attachment=Vec2d(0,-attachment[1]),direction=Vec2d(0,-1),**kwargs)        
-        self.thruster_3=Thruster(attachment=Vec2d(-attachment[0],0),direction=Vec2d(1,0),**kwargs)        
-        self.thruster_4=Thruster(attachment=Vec2d(attachment[0],0),direction=Vec2d(-1,0),**kwargs)
-
-    def set_throttle_ns(self,throttle): #throttle between -1 and 1
-        if throttle>0:
-            self.thruster_2.set_throttle(throttle)
-            self.thruster_1.set_throttle(0)
-        else:
-            self.thruster_2.set_throttle(0)
-            self.thruster_1.set_throttle(-throttle)        
-
-    def set_throttle_ew(self,throttle): #throttle between -1 and 1
-        if throttle>0:
-            self.thruster_4.set_throttle(throttle)
-            self.thruster_3.set_throttle(0)
-        else:
-            self.thruster_4.set_throttle(0)
-            self.thruster_3.set_throttle(-throttle)          
-
-    def update(self,ticks,engine,object):
-        self.thruster_1.update(ticks,engine,object)
-        self.thruster_2.update(ticks,engine,object)
-        self.thruster_3.update(ticks,engine,object)
-        self.thruster_4.update(ticks,engine,object)
-
-
+class NavigationMode(enum):
+    MANUAL=1
+    SET_DIRECTION=2
+    SET_VELOCITY=3
+    SET_VELOCITY_AND_DIRECTION=4
+    SET_POSITION=5
 
 class Ship(GameObject):
     def __init__(self,position=Vec2d(0,0)):            
@@ -142,12 +44,17 @@ class Ship(GameObject):
         self.ship_parts=[]
         self.thruster=Thruster(attachment=Vec2d(0,-self.length_scale),max_force=1e4)
         self.ship_parts.append(self.thruster)
-        self.reaction_wheel=ReactionWheel(max_torque=2e4)
+        self.reaction_wheel=ReactionWheel(max_torque=2e5)
         self.ship_parts.append(self.reaction_wheel)
         self.maneuver_thruster=ManeuverThruster(attachment=(self.length_scale,self.length_scale),max_force=2e3,thrust_color=(128,128,128),thrust_particle_size=5)
         self.ship_parts.append(self.maneuver_thruster)
+        #navigation
+        self.navigation_mode=NavigationMode.MANUAL
+        self.desired_direciton=Vec2d(0,1)
+        self.desired_velocity=Vec2d(0,0)
 
     def update(self,ticks,engine):
+        self.update_navigation()
         GameObject.update(self,ticks,engine)
         for part in self.ship_parts:
             part.update(ticks,engine,self)        
@@ -168,11 +75,41 @@ class Ship(GameObject):
         engine.add_object(bullet)
 
     def set_desired_velocity(self,velocity):
-        delta_v=velocity-self.body.velocity
-        angle=delta_v.angle-self.body.angle
-        if angle>0:
-            self.reaction_wheel.set_throttle(1)
+        self.desired_velocity=velocity
+
+    def navigation_set_direction(self):
+        desired_angle=math.atan2(-self.desired_direciton.x,self.desired_direciton.y)    
+        delta_angle=desired_angle-self.body.angle
+        pid_p=100
+        pid_v=50
+        dead_angle=0.1
+        if abs(delta_angle)>dead_angle:
+            throttle=delta_angle*pid_p-self.body.angular_velocity*pid_v
+            self.reaction_wheel.set_throttle(throttle)
         else:
-            self.reaction_wheel.set_throttle(-1)
-        self.maneuver_thruster.set_throttle_ns(delta_v.y)
-        self.maneuver_thruster.set_throttle_ew(delta_v.x)        
+            throttle=-self.body.angular_velocity*pid_v
+            self.reaction_wheel.set_throttle(throttle) 
+
+    def navigation_set_velocity(self):
+        ew_dir=Vec2D(1,0).rotated(self.body.angle)
+        ns_dir=Vec2D(0,1).rotated(self.body.angle)
+        delta_v=self.desired_velocity-self.body.velocity
+        throttle_p=100
+        desired_thrust=throttle_p*delta_v
+        throttle_ew=desired_thrust.dot(ew_dir)
+        throttle_ns=desired_thrust.dot(ns_dir)
+        self.maneuver_thruster.set_throttle_ns(throttle_ns)
+        self.maneuver_thruster.set_throttle_ew(throttle_ew)
+        #TODO main thruster
+        
+        ...
+
+    def update_navigation(self):
+        if self.navigation_mode==NavigationMode.MANUAL:
+            ...
+        elif self.navigation_mode==NavigationMode.SET_VELOCITY:
+            ...
+        elif self.navigation_mode==NavigationMode.SET_DIRECTION:
+            self.navigation_set_direction()
+        elif self.navigation_mode==NavigationMode.SET_VELOCITY_AND_DIRECTION:
+            self.navigation_set_direction() 
