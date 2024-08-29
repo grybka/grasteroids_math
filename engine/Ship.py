@@ -5,7 +5,7 @@ from sprites.SpriteSheet import get_sprite_store
 from engine.ShipParts import *
 from enum import Enum
 
-class NavigationMode(enum):
+class NavigationMode(Enum):
     MANUAL=1
     SET_DIRECTION=2
     SET_VELOCITY=3
@@ -48,13 +48,17 @@ class Ship(GameObject):
         self.ship_parts.append(self.reaction_wheel)
         self.maneuver_thruster=ManeuverThruster(attachment=(self.length_scale,self.length_scale),max_force=2e3,thrust_color=(128,128,128),thrust_particle_size=5)
         self.ship_parts.append(self.maneuver_thruster)
+        self.cannon=Cannon(attachment=Vec2d(0,self.length_scale))
+        self.ship_parts.append(self.cannon)
         #navigation
         self.navigation_mode=NavigationMode.MANUAL
         self.desired_direciton=Vec2d(0,1)
         self.desired_velocity=Vec2d(0,0)
+        self.inertial_dampening=2e-3
 
     def update(self,ticks,engine):
         self.update_navigation()
+        self.body.velocity=self.body.velocity*(1-self.inertial_dampening)
         GameObject.update(self,ticks,engine)
         for part in self.ship_parts:
             part.update(ticks,engine,self)        
@@ -67,19 +71,42 @@ class Ship(GameObject):
         #return CompoundSprite([self.sprite,self.geo_sprite])        
         return self.sprite
     
-    def fire_cannon(self,engine):
-        pos=self.body.position+Vec2d(0,self.length_scale).rotated(self.body.angle)
-        bullet=Bullet(pos,self.body.velocity+Vec2d(0,500).rotated(self.body.angle))
-        #bullet.body.apply_impulse_at_local_point(Vec2d(0,1e5),(0,0))
-        print("firing bullet")
-        engine.add_object(bullet)
-
     def set_desired_velocity(self,velocity):
         self.desired_velocity=velocity
 
     def navigation_set_direction(self):
         desired_angle=math.atan2(-self.desired_direciton.x,self.desired_direciton.y)    
         delta_angle=desired_angle-self.body.angle
+        while delta_angle>math.pi:
+            delta_angle-=2*math.pi
+        while delta_angle<-math.pi:
+            delta_angle+=2*math.pi
+
+        def sign(x):
+            if x>0:
+                return 1
+            return -1
+        dead_angle=0.2     
+        x=delta_angle
+        v=self.body.angular_velocity
+        a=self.reaction_wheel.get_expected_angular_acceleration(self)        
+        dt=1/60
+        
+        if abs(2*a*x)<=v*v and sign(x)*sign(v)>0: #if we can't stop in time
+            throttle=-1*sign(x)
+        else:
+            throttle=1*sign(x)
+        
+        self.reaction_wheel.set_throttle(throttle)
+
+    """
+    def navigation_set_direction(self):
+        desired_angle=math.atan2(-self.desired_direciton.x,self.desired_direciton.y)    
+        delta_angle=desired_angle-self.body.angle
+        while delta_angle>math.pi:
+            delta_angle-=2*math.pi
+        while delta_angle<-math.pi:
+            delta_angle+=2*math.pi
         pid_p=100
         pid_v=50
         dead_angle=0.1
@@ -88,19 +115,27 @@ class Ship(GameObject):
             self.reaction_wheel.set_throttle(throttle)
         else:
             throttle=-self.body.angular_velocity*pid_v
-            self.reaction_wheel.set_throttle(throttle) 
+            self.reaction_wheel.set_throttle(throttle) """
 
     def navigation_set_velocity(self):
-        ew_dir=Vec2D(1,0).rotated(self.body.angle)
-        ns_dir=Vec2D(0,1).rotated(self.body.angle)
+        dead_velocity=0.1
+        ew_dir=Vec2d(1,0).rotated(self.body.angle)
+        ns_dir=Vec2d(0,1).rotated(self.body.angle)
         delta_v=self.desired_velocity-self.body.velocity
-        throttle_p=100
+        if delta_v.length<dead_velocity:
+            self.maneuver_thruster.set_throttle_ns(0)
+            self.maneuver_thruster.set_throttle_ew(0)
+            return
+        throttle_p=1
         desired_thrust=throttle_p*delta_v
-        throttle_ew=desired_thrust.dot(ew_dir)
+        throttle_ew=-desired_thrust.dot(ew_dir)
         throttle_ns=desired_thrust.dot(ns_dir)
         self.maneuver_thruster.set_throttle_ns(throttle_ns)
         self.maneuver_thruster.set_throttle_ew(throttle_ew)
-        #TODO main thruster
+        if throttle_ns>0:
+            self.thruster.set_throttle(throttle_ns)
+        else:
+            self.thruster.set_throttle(0)
         
         ...
 
@@ -108,8 +143,16 @@ class Ship(GameObject):
         if self.navigation_mode==NavigationMode.MANUAL:
             ...
         elif self.navigation_mode==NavigationMode.SET_VELOCITY:
-            ...
+            self.navigation_set_velocity()
         elif self.navigation_mode==NavigationMode.SET_DIRECTION:
             self.navigation_set_direction()
         elif self.navigation_mode==NavigationMode.SET_VELOCITY_AND_DIRECTION:
             self.navigation_set_direction() 
+            self.navigation_set_velocity()
+
+    def thrusters_off(self):
+        self.thruster.set_throttle(0)
+        self.maneuver_thruster.set_throttle_ns(0)
+        self.maneuver_thruster.set_throttle_ew(0)
+        self.reaction_wheel.set_throttle(0)
+

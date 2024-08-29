@@ -5,20 +5,38 @@ from sprites.SpriteSheet import get_sprite_store
 
 #this describes the relationship between the world and the screen
 class Camera:
-    def __init__(self,screen):
-        self.height=screen.get_height()
+    def __init__(self):
+        #self.height=screen.get_height()
         self.position=Vec2d(0,0) #camera center in world coordinates
-        self.screen_center=Vec2d(screen.get_width()/2,screen.get_height()/2)
+        #self.screen_center=Vec2d(screen.get_width()/2,screen.get_height()/2)
         self.zoom=1
 
-    def flipy(self,y):
+    def set_screen(self,screen):
+        self.height=screen.get_height()
+        self.width=screen.get_width
+        self.screen_center=Vec2d(screen.get_width()/2,screen.get_height()/2)
+
+    def flipy(self,vec):
         """Small hack to convert chipmunk physics to pygame coordinates"""        
-        return -y + self.height
+        #return -y + self.height
+        return ( round(vec.x), round(-vec.y + self.height))
+    
+    def unflipy(self,vec):
+        return Vec2d(vec[0],self.height-vec[1])
+    
+    
 
 
     def get_screen_position(self,world_position):        
         x=(world_position-self.position)*self.zoom+self.screen_center         
-        return (round(x[0]),round(self.flipy(x[1])))
+        return self.flipy(x)
+        #return (round(x[0]),round(self.flipy(x[1])))
+    
+    def get_world_position(self,screen_position):
+        pos=self.unflipy(screen_position)
+        return (pos-self.screen_center)/self.zoom+self.position
+        
+        
 
 
 class DrawableSprite:
@@ -73,9 +91,14 @@ class ImageSprite(DrawableSprite):
 
     def blit(self,screen,camera):
         pos=camera.get_screen_position(self.world_position)
-        rotated_image=pygame.transform.rotate(self.image,math.degrees(self.angle))
+        image=self.image
+        if camera.zoom !=1:
+            image=pygame.transform.scale(image,(int(image.get_width()*camera.zoom),int(image.get_height()*camera.zoom)))        
+        if self.angle!=0:
+            image=pygame.transform.rotate(image,math.degrees(self.angle))
+        
         #rotated_image=self.image
-        screen.blit(rotated_image,(pos[0]-rotated_image.get_width()/2,pos[1]-rotated_image.get_height()/2))
+        screen.blit(image,(pos[0]-image.get_width()/2,pos[1]-image.get_height()/2))
 
 class CompoundSprite(DrawableSprite):
     def __init__(self,sprites=[]):

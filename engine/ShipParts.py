@@ -63,6 +63,9 @@ class ReactionWheel(ShipPart):
         if throttle<-1:
             throttle=-1
         self.throttle=throttle    
+    
+    def get_expected_angular_acceleration(self,ship):
+        return self.throttle*self.max_torque/ship.body.moment
 
     def update(self,ticks,engine,ship):
         if self.throttle!=0:
@@ -105,5 +108,33 @@ class ManeuverThruster(ShipPart):
         self.thruster_2.update(ticks,engine,object)
         self.thruster_3.update(ticks,engine,object)
         self.thruster_4.update(ticks,engine,object)
+
+
+
+class Cannon(ShipPart):
+    def __init__(self,attachment=Vec2d(0,0),cooldown=0.2,projectile_speed=300,projectile_radius=2,projectile_color=(0,255,0),direction=Vec2d(0,1)):
+        self.attachment=attachment
+        self.cooldown=cooldown
+        self.time_since_last_shot=0
+        self.projectile_speed=projectile_speed
+        self.projectile_radius=projectile_radius
+        self.projectile_color=projectile_color
+        self.firing=False
+        self.direction=direction
+
+    def fire(self):
+        self.firing=True
+
+    def update(self,ticks,engine,ship):
+        self.time_since_last_shot+=ticks/1000
+        if self.firing and self.time_since_last_shot>self.cooldown:
+            self.time_since_last_shot=0            
+            projectile=Bullet(radius=self.projectile_radius,color=self.projectile_color)
+            projectile.set_position(ship.body.position+self.attachment.rotated(ship.body.angle))
+            projectile.set_velocity(ship.body.velocity+self.direction.rotated(ship.body.angle)*self.projectile_speed)            
+            engine.add_object(projectile)            
+            #make_space_explosion(engine,object.position,particle_count=100,particle_lifetime=1,mean_particle_speed=100,particle_speed_sigma=10,particle_radius=2,particle_color=(255,255,255),explosion_velocity=object.velocity+self.direction.rotated_by(object.rotation)*self.projectile_speed)
+            #TODO add sound effect here
+            #self.firing=False
 
 
