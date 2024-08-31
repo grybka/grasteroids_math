@@ -4,6 +4,7 @@ from engine.GameObjects import *
 from engine.Ship import *
 import pymunk
 from sprites.Background import *
+from engine.Magnetile import *
 
 class GameEngine:
     def __init__(self,clock):
@@ -27,9 +28,14 @@ class GameEngine:
     
         self.my_ship=Ship()
         self.add_object(self.my_ship)
-        for i in range(5):
-            for j in range(5):
-                self.add_object(SquareMagnetile(position=Vec2d(40*j,1000+40*i)))
+        self.add_object(SquareMagnetile(position=Vec2d(40,1000)))
+        self.add_object(RightTriangleMagnetile(position=Vec2d(100,1000)))
+        self.add_object(EquilateralTriangleMagnetile(position=Vec2d(160,1000)))
+        self.add_object(IsocelesTriangleMagnetile(position=Vec2d(220,1000)))
+        self.add_object(TallRightTriangleMagnetile(position=Vec2d(280,1000)))
+        #for i in range(5):
+        #    for j in range(5):
+        #        self.add_object(SquareMagnetile(position=Vec2d(40*j,1000+40*i)))
         #self.add_object(BarMagnet(position=Vec2d(0,200),length=20e4))
         #self.add_object(BarMagnet(position=Vec2d(40,240),length=20e4))
         #self.add_object(ChargedSphere(position=Vec2d(0,200),charge=1))
@@ -69,6 +75,9 @@ class GameEngine:
             #self.my_ship.navigation_mode=NavigationMode.SET_DIRECTION
             self.my_ship.desired_velocity=desired_velocity
             self.my_ship.desired_direciton=arrow
+        else:
+            self.my_ship.navigation_mode=NavigationMode.ZERO_ANGULAR_VELOCITY
+            
 
     def update(self,ticks):
         #update controls
@@ -125,12 +134,6 @@ class GameEngine:
             self.camera.zoom*=0.995
         elif delta_camera.length<downscale_length/self.camera.zoom and self.camera.zoom<self.max_camera_zoom:
             self.camera.zoom*=1.005        
-            
-
-
-
-
-
 
         self.width,self.height=screen.get_size()
         
@@ -215,5 +218,6 @@ class GameEngine:
         if event.type == pygame.MOUSEBUTTONUP:
             if event.button==1:
                 self.desired_velocity=Vec2d(0,0)
-                self.my_ship.navigation_mode=NavigationMode.MANUAL
-                self.my_ship.thrusters_off()
+                #self.my_ship.navigation_mode=NavigationMode.MANUAL
+                self.my_ship_navigation_mode=NavigationMode.ZERO_ANGULAR_VELOCITY
+                self.my_ship.thrusters_off()                

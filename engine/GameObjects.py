@@ -7,12 +7,6 @@ import random
 from sprites.Sprite_To_Geometry import *
 
 
-magnetile_scale=40
-magnetile_density=0.05
-
-def random_magnetile_color():
-    return pygame.Color(random.choice(["blue2","firebrick","goldenrod1","darkolivegreen4"]))
-
 
 
 class GameObject:
@@ -22,6 +16,9 @@ class GameObject:
 
     def set_position(self,position:Vec2d):
         self.body.position=position
+
+    def set_angle(self,angle:float):
+        self.body.angle=angle
 
     def set_velocity(self,velocity:Vec2d):
         self.body.velocity=velocity 
@@ -59,36 +56,6 @@ class ChargedSphere(GameObject):
    
 
 
-class SquareMagnetile(GameObject):
-    def __init__(self,position=Vec2d(0,0)):
-        points=[(-magnetile_scale/2,-magnetile_scale/2),(-magnetile_scale/2,magnetile_scale/2),(magnetile_scale/2,magnetile_scale/2),(magnetile_scale/2,-magnetile_scale/2)]
-        mass = magnetile_density * magnetile_scale * magnetile_scale
-        moment = pymunk.moment_for_poly(mass, points, (0, 0))
-        self.body = pymunk.Body(mass, moment)
-        self.body.position = position
-        self.shape = pymunk.Poly(self.body, points)
-        self.shape.friction=0.5
-        self.shape.elasticity=0.8        
-        self.color=random_magnetile_color()
-
-
-    def get_sprite(self):
-        return DebugPolySprite(self.shape.get_vertices(),self.color,self.body.position,self.body.angle)
-    
-class RightTriangleMagnetile():
-    def __init__(self,position=Vec2d(0,0)):
-        points=[(-magnetile_scale/2,-magnetile_scale/2),(-magnetile_scale/2,magnetile_scale/2),(magnetile_scale/2,-magnetile_scale/2)]
-        mass = magnetile_density * magnetile_scale * magnetile_scale
-        moment = pymunk.moment_for_poly(mass, points, (0, 0))
-        self.body = pymunk.Body(mass, moment)
-        self.body.position = position
-        self.shape = pymunk.Poly(self.body, points)
-        self.shape.friction=0.5
-        self.color=random_magnetile_color()
-
-    def get_sprite(self):
-        return DebugPolySprite(self.shape.get_vertices(),self.color,self.body.position,self.body.angle)
-    
             
 class Bullet(GameObject):
     def __init__(self,position=Vec2d(0,0),velocity=Vec2d(0,0),radius=5,color=(255,255,255)):            

@@ -13,7 +13,7 @@ class Camera:
 
     def set_screen(self,screen):
         self.height=screen.get_height()
-        self.width=screen.get_width
+        self.width=screen.get_width()
         self.screen_center=Vec2d(screen.get_width()/2,screen.get_height()/2)
 
     def flipy(self,vec):
@@ -62,6 +62,32 @@ class DebugPolySprite(DrawableSprite):
     def blit(self,screen,camera):        
         vertices=[camera.get_screen_position(self.world_position+v.rotated(self.angle)) for v in self.vertices]
         pygame.draw.polygon(screen,self.color,vertices)
+
+def clamp(x,minimum,maximum):
+    return max(minimum,min(x,maximum))
+
+def color_blend(color,delta):
+    return (clamp(color[0]+delta,0,255),clamp(color[1]+delta,0,255),clamp(color[2]+delta,0,255))
+
+
+class MagnetileSprite(DrawableSprite):
+    def __init__(self,magnetile):
+        DrawableSprite.__init__(self,Vec2d(0,0))        
+        self.magnetile=magnetile
+
+    def blit(self,screen,camera):        
+        vertices=[camera.get_screen_position(self.magnetile.body.position+v.rotated(self.magnetile.body.angle)) for v in self.magnetile.vertices]
+        pygame.draw.polygon(screen,self.magnetile.color,vertices)        
+        for magnet in self.magnetile.magnets:
+            inset=3
+            radius=3*camera.zoom
+            #position=camera.get_screen_position(self.magnetile.body.position+magnet.position.rotated(self.magnetile.body.angle))
+            position=camera.get_screen_position(self.magnetile.body.position+(magnet.position-inset*magnet.normal).rotated(self.magnetile.body.angle))
+            if magnet.polarity==1:
+                pygame.draw.circle(screen,color_blend(self.magnetile.color,-20),position,radius)
+            else:
+                pygame.draw.circle(screen,color_blend(self.magnetile.color,20),position,radius)
+
 
 class CircleSprite(DrawableSprite):
     def __init__(self,radius=10,color=(255,255,255),world_position=Vec2d(0,0)):

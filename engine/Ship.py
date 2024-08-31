@@ -11,6 +11,7 @@ class NavigationMode(Enum):
     SET_VELOCITY=3
     SET_VELOCITY_AND_DIRECTION=4
     SET_POSITION=5
+    ZERO_ANGULAR_VELOCITY=6
 
 class Ship(GameObject):
     def __init__(self,position=Vec2d(0,0)):            
@@ -99,6 +100,11 @@ class Ship(GameObject):
         
         self.reaction_wheel.set_throttle(throttle)
 
+    def navigation_zero_angluar_velocity(self):
+        #print("zeroing angular velocity")
+        self.reaction_wheel.set_throttle(-10*self.body.angular_velocity)
+        
+
     """
     def navigation_set_direction(self):
         desired_angle=math.atan2(-self.desired_direciton.x,self.desired_direciton.y)    
@@ -149,6 +155,9 @@ class Ship(GameObject):
         elif self.navigation_mode==NavigationMode.SET_VELOCITY_AND_DIRECTION:
             self.navigation_set_direction() 
             self.navigation_set_velocity()
+        elif self.navigation_mode==NavigationMode.ZERO_ANGULAR_VELOCITY:
+            self.navigation_zero_angluar_velocity()
+            
 
     def thrusters_off(self):
         self.thruster.set_throttle(0)
