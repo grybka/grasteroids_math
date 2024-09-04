@@ -79,10 +79,15 @@ class AssemblyLayer:
         ...
         self.buttons=[]
         self.buttons.append(TextButton((10,10,100,50),"Save","save"))        
-        self.colors=["blue2","firebrick2","gold","darkolivegreen4","darkorchid4"]
+        self.colors=["blue2","firebrick2","gold","chartreuse1","darkorchid4"]
         for color in self.colors:
             print("color",color)
             self.buttons.append(ColorButton((10,10+60*len(self.buttons),100,50),color,"color"))
+        self.buttons.append(TextButton((10,10+60*len(self.buttons),100,50),"Clear","clear"))
+        ...
+        self.shift_down=False
+        self.is_selecting=False
+        self.select_rect=None
 
 
     def add_choice(self,choice):
@@ -101,6 +106,10 @@ class AssemblyLayer:
             world_pos=self.placement_camera.get_world_position(pos)
             self.dragging_object.body.position=world_pos
             self.check_snap()
+        if self.is_selecting:
+            pos=pygame.mouse.get_pos()
+            self.select_rect[2]=pos[0]-self.select_rect[0]
+            self.select_rect[3]=pos[1]-self.select_rect[1]            
 
 
     def check_snap(self):
@@ -120,9 +129,7 @@ class AssemblyLayer:
                         best_goodness=goodness
                         best_snap=(delta_dist,delta_angle)
         if best_snap is not None:
-            if best_snap[1]!=0:
-                print("snap",best_snap)
-                print("len self objects",len(self.objects))
+            
             self.dragging_object.body.position+=best_snap[0]
             self.dragging_object.body.angle+=best_snap[1]
             #print("snap",best_snap)
@@ -141,21 +148,28 @@ class AssemblyLayer:
 
     def button_clicked(self,button):
         if button.name=="save":
-            # get current date and timels 
-            current_datetime = datetime.now().strftime("%Y-%m-%d-%H-%M")
-            #print("Current date & time : ", current_datetime)
+            self.save_to_file()
+
+
             
-            # convert datetime obj to string
-            str_current_datetime = str(current_datetime)
-            
-            # create a file object along with extension
-            fname = str_current_datetime+".yaml"
-            #fname="test.yaml"
-            print("saving to {}".format(fname))
-            MagnetileConstruction(self.objects).save(fname)
         if button.name=="color":
             for choice in self.magnetile_choices:
                 choice.color=pygame.Color(button.color)
+        if button.name == "clear":
+            for object in self.objects:
+                self.placement_space.remove(object.body, object.shape)
+            self.objects=[]
+
+    def save_to_file(self):
+        
+            
+        construction=MagnetileConstruction(self.objects,re_center=True)
+        
+        current_datetime = datetime.now().strftime("%Y-%m-%d-%H-%M")
+        str_current_datetime = str(current_datetime)
+        fname = str_current_datetime+".yaml"
+        print("saving to {}".format(fname))
+        construction.save(fname)
 
 
     def handle_event(self,event):
@@ -164,21 +178,45 @@ class AssemblyLayer:
                 fname="test.yaml"
                 print("saving to {}".format(fname))
                 MagnetileConstruction(self.objects).save(fname)  
+            if event.key==pygame.K_LSHIFT:                
+                self.shift_down=True
+        if event.type == pygame.KEYUP:
+            if event.key==pygame.K_LSHIFT:                
+                self.shift_down=False
         if event.type == pygame.MOUSEBUTTONDOWN:
             if event.button==1:                
                 pos=pygame.mouse.get_pos()
+                if self.is_selecting:
+                    self.is_selecting=False
+                    #delete all objects in rect
+                    todelete=[]
+                    for obj in self.objects:
+                        myrect=pygame.Rect(self.select_rect)
+                        if myrect.collidepoint(*self.placement_camera.get_screen_position(obj.body.position)):
+                            todelete.append(obj)
+                    for obj in todelete:
+                        self.placement_space.remove(obj.body,obj.shape)
+                        self.objects.remove(obj)
+                        
+                    ...
+                    return
+                if self.shift_down:
+                    print("select start")
+                    self.is_selecting=True
+                    self.select_rect=[pos[0],pos[1],0,0]
+                    return
                 #first see if its a button
                 for button in self.buttons:
                     if button.point_in_button(pos):
                         self.button_clicked(button)                        
-                        break
+                        return
                 #if left of the divider, pick up a magnetile
                 if pos[0]<self.divider_x:
                     world_pos=self.left_camera.get_world_position(pos)                    
                     for obj in self.magnetile_choices:
                         pq=obj.shape.point_query(world_pos)
                         if pq.distance<0: 
-                            self.dragging_object=obj.get_of_type()                                     
+                            self.dragging_object=obj.my_copy()                                     
                             break
                 #if right of the divider and carrying a magnetile, place it
                 elif pos[0]>self.divider_x and self.dragging_object is not None:
@@ -198,11 +236,11 @@ class AssemblyLayer:
                             break
             if event.button==4:
                 if self.dragging_object is not None:
-                    self.dragging_object.body.angle+=0.1
+                    self.dragging_object.body.angle+=0.3
                 
             if event.button==5:
                 if self.dragging_object is not None:
-                    self.dragging_object.body.angle-=0.1
+                    self.dragging_object.body.angle-=0.3
 
             if event.button==2:
                 if self.dragging_object is not None:
@@ -252,6 +290,9 @@ class AssemblyLayer:
         if self.dragging_object is not None:
             #print("dragging object positoin",self.dragging_object.body.position)
             self.dragging_object.get_sprite().blit(screen,self.placement_camera)
+        #draw the selection rect
+        if self.is_selecting:
+            pygame.draw.rect(screen,(255,255,255),self.select_rect,2)
 
     def draw_left(self,screen):
         for obj in self.magnetile_choices:

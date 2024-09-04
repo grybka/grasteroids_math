@@ -1,6 +1,7 @@
 from pymunk import Vec2d
 from sprites.Sprite import *
 from engine.GameObjects import *
+from engine.Sound import *
 
 class ShipPart:
     def __init__(self,attachement=Vec2d(0,0)):
@@ -26,6 +27,7 @@ class Thruster(ShipPart):
         self.thrust_particle_speed=kwargs["thrust_particle_speed"]
         self.thrust_particle_size=kwargs["thrust_particle_size"]
         self.thrust_color=kwargs["thrust_color"]
+        self.sound_on=False #true if it should play a sound when on
 
     def set_throttle(self,throttle): #throttle is a float from 0 to 1
         self.throttle=throttle
@@ -49,6 +51,13 @@ class Thruster(ShipPart):
                 engine.add_decorator(particle)
             else:
                 self.time_since_last_thrust_particle+=ticks/1000
+            if self.sound_on:
+                get_sound_store().get_channel("engine").set_volume(0.5*self.throttle)
+                get_sound_store().get_channel("engine").unpause()                
+                print("sound unpau sed throttle {}".format(self.throttle))
+        else:
+            if self.sound_on:
+                get_sound_store().get_channel("engine").pause()
 
 class ReactionWheel(ShipPart):
     def __init__(self,max_torque=100):
@@ -79,13 +88,15 @@ class ReactionWheel(ShipPart):
 class ManeuverThruster(ShipPart):
     def __init__(self,**kwargs):
         self.attachment=(0,0)        
-        attachment=kwargs.pop("attachment")
+        attachment_side=kwargs.pop("attachment_side")
+        attachment_front=kwargs.pop("attachment_front")
+        attachment_back=kwargs.pop("attachment_back")
         direction=kwargs.pop("direction",None)
         ShipPart.__init__(self,Vec2d(0,0))        
-        self.thruster_2=Thruster(attachment=Vec2d(0,-attachment[1]),direction=Vec2d(0,1),**kwargs)        
-        self.thruster_1=Thruster(attachment=Vec2d(0,attachment[1]),direction=Vec2d(0,-1),**kwargs)        
-        self.thruster_3=Thruster(attachment=Vec2d(-attachment[0],0),direction=Vec2d(1,0),**kwargs)        
-        self.thruster_4=Thruster(attachment=Vec2d(attachment[0],0),direction=Vec2d(-1,0),**kwargs)
+        self.thruster_2=Thruster(attachment=Vec2d(0,-attachment_back),direction=Vec2d(0,1),**kwargs)        
+        self.thruster_1=Thruster(attachment=Vec2d(0,attachment_front),direction=Vec2d(0,-1),**kwargs)        
+        self.thruster_3=Thruster(attachment=Vec2d(-attachment_side,0),direction=Vec2d(1,0),**kwargs)        
+        self.thruster_4=Thruster(attachment=Vec2d(attachment_side,0),direction=Vec2d(-1,0),**kwargs)
 
     def set_throttle_ns(self,throttle): #throttle between -1 and 1
         if throttle>0:
@@ -128,11 +139,38 @@ class Cannon(ShipPart):
     def update(self,ticks,engine,ship):
         self.time_since_last_shot+=ticks/1000
         if self.firing and self.time_since_last_shot>self.cooldown:
+            get_sound_store().play_sound("laser")
             self.time_since_last_shot=0            
             projectile=Bullet(radius=self.projectile_radius,color=self.projectile_color)
             projectile.set_position(ship.body.position+self.attachment.rotated(ship.body.angle))
+            projectile.set_angle(ship.body.angle)
             projectile.set_velocity(ship.body.velocity+self.direction.rotated(ship.body.angle)*self.projectile_speed)            
-            engine.add_object(projectile)            
+            engine.schedule_add_object(projectile)            
+            #make_space_explosion(engine,object.position,particle_count=100,particle_lifetime=1,mean_particle_speed=100,particle_speed_sigma=10,particle_radius=2,particle_color=(255,255,255),explosion_velocity=object.velocity+self.direction.rotated_by(object.rotation)*self.projectile_speed)
+            #TODO add sound effect here
+            #self.firing=False
+
+class LaserCannon(ShipPart):
+    def __init__(self,attachment=Vec2d(0,0),cooldown=0.2,projectile_speed=600,direction=Vec2d(0,1)):
+        self.attachment=attachment
+        self.cooldown=cooldown
+        self.time_since_last_shot=0
+        self.projectile_speed=projectile_speed
+        self.firing=False
+        self.direction=direction
+
+    def fire(self):
+        self.firing=True
+
+    def update(self,ticks,engine,ship):
+        self.time_since_last_shot+=ticks/1000
+        if self.firing and self.time_since_last_shot>self.cooldown:
+            self.time_since_last_shot=0            
+            start_pos=ship.body.position+self.attachment.rotated(ship.body.angle)
+            projectile=LaserBeam(start_position=start_pos)            
+            projectile.set_velocity(ship.body.velocity+self.direction.rotated(ship.body.angle)*self.projectile_speed)            
+            projectile.set_angle(ship.body.angle)
+            engine.schedule_add_object(projectile)            
             #make_space_explosion(engine,object.position,particle_count=100,particle_lifetime=1,mean_particle_speed=100,particle_speed_sigma=10,particle_radius=2,particle_color=(255,255,255),explosion_velocity=object.velocity+self.direction.rotated_by(object.rotation)*self.projectile_speed)
             #TODO add sound effect here
             #self.firing=False

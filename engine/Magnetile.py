@@ -26,7 +26,7 @@ class MagnetileJointPair:
 
 #vertices must be in clockwise order
 class Magnetile(GameObject):
-    def __init__(self,position=Vec2d(0,0),vertices=[],color=None):
+    def __init__(self,position=Vec2d(0,0),vertices=[],color=None,angle=0):
         GameObject.__init__(self)
         self.vertices=[Vec2d(magnetile_scale*v[0],magnetile_scale*v[1]) for v in vertices]
         #generate magnets
@@ -64,7 +64,9 @@ class Magnetile(GameObject):
         #generate pymunk body
         self.body = pymunk.Body()
         self.body.position = position
+        self.body.angle=angle
         self.shape = pymunk.Poly(self.body, self.vertices)
+        self.shape.collision_type=COLLISION_TYPE_SHIP
         self.shape.density=magnetile_density
         self.shape.friction=0.5
         self.shape.elasticity=0.8
@@ -80,6 +82,9 @@ class Magnetile(GameObject):
         for v in self.vertices:
             ret.append( (v[0]/magnetile_scale,v[1]/magnetile_scale))
         return ret
+    
+    def get_vertices_worldspace(self):
+        return [self.body.local_to_world(v) for v in self.vertices]
 
     def get_world_joint_pairs(self):
         ret=[]
@@ -98,15 +103,22 @@ class Magnetile(GameObject):
         new_vertices=[(-v[0],v[1]) for v in points]        
         return Magnetile(self.body.position,new_vertices)
     
+    def my_copy(self):
+        return Magnetile(self.body.position,self.get_points(),color=self.color,angle=self.body.angle)
+    
     def to_dict(self):
         position=[self.body.position[0],self.body.position[1]]
         verts=[ [v[0],v[1]] for v in self.get_points()]
-        return {"type":"magnetile","position":position,"angle": self.body.angle,"vertices":verts}
+        color=[ self.color.r,self.color.g,self.color.b, self.color.a]
+        return {"type":"magnetile","position":position,"angle": self.body.angle,"vertices":verts,"color":color}
     
     @staticmethod
     def from_dict(d):
         pos=Vec2d(d["position"][0],d["position"][1])
-        ret=Magnetile(pos,d["vertices"])
+        color=None
+        if "color" in d:
+            color=pygame.Color(d["color"][0],d["color"][1],d["color"][2],d["color"][3])        
+        ret=Magnetile(pos,d["vertices"],color=color)
         ret.set_angle(d["angle"])
         return ret
         
@@ -116,60 +128,103 @@ class SquareMagnetile(Magnetile):
         points=[(-1/2,-1/2),(-1/2,1/2),(1/2,1/2),(1/2,-1/2)]
         Magnetile.__init__(self,position,points,color=color)
 
-    def get_of_type(self):
-        return SquareMagnetile(self.body.position,self.color)
-    
+   
 class RectMagnetile(Magnetile):
     def __init__(self,position=Vec2d(0,0),color=None):
         points=[(-1/2,-1),(-1/2,1),(1/2,1),(1/2,-1)]
         Magnetile.__init__(self,position,points,color)
 
-    def get_of_type(self):
-        return RectMagnetile(self.body.position,self.color)
-    
+  
 class RightTriangleMagnetile(Magnetile):
     def __init__(self,position=Vec2d(0,0),color=None):
         #points=[(-magnetile_scale/2,-magnetile_scale/2),(-magnetile_scale/2,magnetile_scale/2),(magnetile_scale/2,-magnetile_scale/2)]
         points=[(-1/2,-1/2),(-1/2,1/2),(1/2,-1/2)]
         Magnetile.__init__(self,position,points,color)        
 
-    def get_of_type(self):
-        return RightTriangleMagnetile(self.body.position,self.color)
-
+   
 class EquilateralTriangleMagnetile(Magnetile):
     def __init__(self,position=Vec2d(0,0),color=None):
         points=[(-1/2,-1/2),(0,math.sqrt(3)/2-1/2),(1/2,-1/2)]
         Magnetile.__init__(self,position,points,color)
 
-    def get_of_type(self):
-        return EquilateralTriangleMagnetile(self.body.position,self.color)
-
+   
 class IsocelesTriangleMagnetile(Magnetile):
     def __init__(self,position=Vec2d(0,0),color=None):
         points=[(-1/2,-1/2),(0,math.sqrt(15)/2-1/2),(1/2,-1/2)]
         Magnetile.__init__(self,position,points,color)
 
-    def get_of_type(self):
-        return IsocelesTriangleMagnetile(self.body.position,self.color)
-
+  
 class TallRightTriangleMagnetile(Magnetile):
     def __init__(self,position=Vec2d(0,0),color=None):
         points=[(-1/2,-1/2),(-1/2,3/2),(1/2,-1/2)]
         Magnetile.__init__(self,position,points,color)
 
-    def get_of_type(self):
-        return TallRightTriangleMagnetile(self.body.position,self.color)
-    
+   
 class MagnetileConstruction(GameObject):
-    def __init__(self,magnetiles=[]):
+    def __init__(self,magnetiles=[],re_center=False,shape_fname=None):
         GameObject.__init__(self)
-        self.magnetiles=magnetiles
+        #Ideally, the magnetile position are all relative to the construction with angle zero
+        if shape_fname is not None:
+            self.magnetiles=[]
+            with open(shape_fname,"r") as f:
+                d=yaml.safe_load(f)                
+                for m in d["magnetiles"]:
+                    self.magnetiles.append(Magnetile.from_dict(m))
+            
+        else:
+            self.magnetiles=magnetiles
+
+        #generate pymunk body
+        self.body = pymunk.Body()                
+        #generate pymunk shapes
+        self.shape = []
+        for m in self.magnetiles:
+            print("magnetile position",m.body.position)
+            verts=m.get_vertices_worldspace()
+            shape = pymunk.Poly(self.body, verts)
+            shape.collision_type=COLLISION_TYPE_SHIP
+            shape.density=magnetile_density
+            shape.friction=0.5
+            shape.elasticity=0.8
+            self.shape.append(shape)
+        if re_center:
+            self.re_center()
+        #generate sprite
+        self.sprite=MagnetileConstructionSprite(self)
+        
+
+    def re_center(self):
+        #find the center of mass
+        total_mass=0
+        center=Vec2d(0,0)
+        for s in self.magnetiles:
+            center+=s.body.local_to_world(s.shape.center_of_gravity)*s.shape.mass            
+            total_mass+=s.body.mass
+        center/=total_mass
+        print("center of mass is",center)
+        self.body.position=center
+        for s in self.magnetiles:
+            s.body.position-=center
 
     def to_dict(self):
         ret=[]
         for m in self.magnetiles:
             ret.append(m.to_dict())
-        return {"type":"magnetile_construction","magnetiles":ret}
+        return {"type":"magnetile_construction","magnetiles":ret}    
+    
+    def get_bbox(self):
+        #assumens center is at 0,0
+        minx=1e9
+        miny=1e9
+        maxx=-1e9
+        maxy=-1e9
+        for m in self.magnetiles:
+            for v in m.get_vertices_worldspace():
+                minx=min(minx,v[0])
+                miny=min(miny,v[1])
+                maxx=max(maxx,v[0])
+                maxy=max(maxy,v[1])               
+        return (minx,miny,maxx,maxy)
         
     @staticmethod
     def from_dict(d):
@@ -181,4 +236,6 @@ class MagnetileConstruction(GameObject):
     def save(self,filename):
         with open(filename,"w") as f:
             f.write(yaml.dump(self.to_dict()))
-        
+                
+    def get_sprite(self):
+        return self.sprite        

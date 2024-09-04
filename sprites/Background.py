@@ -27,7 +27,7 @@ class Background:
 
     def draw(self,screen,camera):
         corner1=camera.get_world_position((0,0))
-        corner2=camera.get_world_position((screen.get_width(),screen.get_height()))
+        corner2=camera.get_world_position((screen.get_width(),screen.get_height()))       
         xmin=min(corner1[0],corner2[0])
         xmax=max(corner1[0],corner2[0])
         ymin=min(corner1[1],corner2[1])

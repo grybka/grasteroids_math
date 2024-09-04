@@ -4,3 +4,6 @@ ship1:
 ship2:
   file: "images\\ship_spritesheet.png"
   rect: [ 256, 0, 256, 256]
+bullet:
+  file: "images\\32x32_spritesheet.png"
+  rect: [ 0, 0, 32, 32]
