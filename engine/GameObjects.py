@@ -35,6 +35,11 @@ class GameObject:
     def should_remove(self):
         return self.remove_flag
     
+    def get_mass(self):
+        if isinstance(self.shape,list):
+            return sum([s.mass for s in self.shape])
+        return self.shape.mass
+    
 
 class ChargedSphere(GameObject):
     def __init__(self,position=Vec2d(0,0),velocity=Vec2d(0,0),radius=20,charge=1):            
@@ -61,10 +66,10 @@ class ChargedSphere(GameObject):
 
             
 class Bullet(GameObject):
-    def __init__(self,position=Vec2d(0,0),velocity=Vec2d(0,0),radius=5,color=(255,255,255)):            
+    def __init__(self,position=Vec2d(0,0),velocity=Vec2d(0,0)):            
         GameObject.__init__(self)
-        mass=1
-        self.color=color
+        radius=5
+        mass=1        
         moment=pymunk.moment_for_circle(mass,0,radius,(0,0))
         self.body = pymunk.Body(mass, moment)        
         self.shape = pymunk.Circle(self.body, radius,(0,0))

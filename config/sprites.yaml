@@ -7,3 +7,6 @@ ship2:
 bullet:
   file: "images\\32x32_spritesheet.png"
   rect: [ 0, 0, 32, 32]
+crosshairs1:
+  file: "images\\crosshairs64.png"
+  rect: [ 0, 0, 64, 64]

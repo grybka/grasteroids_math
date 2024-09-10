@@ -191,7 +191,15 @@ class MagnetileConstruction(GameObject):
             self.re_center()
         #generate sprite
         self.sprite=MagnetileConstructionSprite(self)
-        
+    
+    def get_mass(self):
+        return sum([s.mass for s in self.shape])
+    
+    def get_moment(self):
+        moment=0
+        for s in self.shape:
+            moment+=s.moment+s.center_of_gravity.get_length_sqrd()*s.mass
+        return moment
 
     def re_center(self):
         #find the center of mass

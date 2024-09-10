@@ -3,6 +3,7 @@ from engine.GameEngine import GameEngine
 from sprites.SpriteSheet import get_sprite_store
 from sprites.Sprite_To_Geometry import get_geometry_store
 from engine.Sound import get_sound_store
+from engine.Ship import get_ship_factory
 
 
 
@@ -48,9 +49,13 @@ get_sound_store().load_sounds()
 get_sound_store().loop_sound_on_channel("engine","engine")
 get_sound_store().get_channel("engine").pause()
 
+#load ship info
+get_ship_factory().load_ship_info("config/ship_info.yaml")
+
+
 #loop through game engine
 engine=GameEngine(clock)
-engine.controller=controller
+engine.set_controller(controller)
 running=True
 while running:
     clock.tick(60)

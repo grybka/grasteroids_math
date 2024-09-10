@@ -237,10 +237,14 @@ class AssemblyLayer:
             if event.button==4:
                 if self.dragging_object is not None:
                     self.dragging_object.body.angle+=0.3
+                else:
+                    self.placement_camera.zoom*=0.9
                 
             if event.button==5:
                 if self.dragging_object is not None:
                     self.dragging_object.body.angle-=0.3
+                else:
+                    self.placement_camera.zoom*=1.1                
 
             if event.button==2:
                 if self.dragging_object is not None:

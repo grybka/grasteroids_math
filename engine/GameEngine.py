@@ -6,15 +6,18 @@ import pymunk
 from sprites.Background import *
 from engine.Magnetile import *
 from engine.NPC_control import *
+from engine.HUD import *
 
 class GameEngine:
     def __init__(self,clock):
         self.controller=None
         #display stuff
         self.camera=Camera()
-        self.min_camera_zoom=0.3
-        self.max_camera_zoom=1
-        self.default_zoom=1
+        self.min_camera_zoom=0.25
+        self.max_camera_zoom=0.5
+        self.camera.zoom=0.5        
+        #self.default_zoom=1.0
+        self.hud=HUD()
 
         self.clock=clock
         self.space = pymunk.Space()
@@ -33,17 +36,15 @@ class GameEngine:
         self.report_interval=2000
         
         ...
-    
-        #self.my_ship=Ship()
-        self.my_ship=MagnetileShip(shape_fname="tile_arrangements/ship1.yaml")
-        #self.my_ship=MagnetileShip(shape_fname="tile_arrangements/ship2.yaml")
+
+        self.my_ship=get_ship_factory().get_ship("ship3")        
         self.schedule_add_object(self.my_ship)
         self.my_ship.thruster.sound_on=True
 
-
-        self.other_ship=MagnetileShip(shape_fname="tile_arrangements/ship2.yaml")
-        self.other_ship.body.position=Vec2d(0,1000)
-        self.schedule_add_object(self.other_ship)
+        self.respawn_enemy()
+        #self.other_ship=get_ship_factory().get_ship("ship2")        
+        #self.other_ship.body.position=Vec2d(0,800)        
+        #self.schedule_add_object(self.other_ship)
         #self.add_object(SquareMagnetile(position=Vec2d(40,1000)))
         #self.add_object(RightTriangleMagnetile(position=Vec2d(100,1000)))
         #self.add_object(EquilateralTriangleMagnetile(position=Vec2d(160,1000)))
@@ -58,11 +59,39 @@ class GameEngine:
         #self.add_object(ChargedSphere(position=Vec2d(60,200),charge=-1))
         self.desired_velocity=Vec2d(0,0)
 
-        self.npcs=[]
+        #self.npcs=[]
         #self.npcs.append( TurnTowardsPlayer(npc=self.other_ship,player=self.my_ship,angle_threshold=0.1) )        
         #self.npcs.append( ApproachTarget(npc=self.other_ship,target=self.my_ship,radius=10) )
-        self.npcs.append( ApproachToDistance(npc=self.other_ship,player=self.my_ship,too_close=100,too_far=200) )
+        #self.npcs.append( ApproachToDistance(npc=self.other_ship,player=self.my_ship,too_close=100,too_far=200) )
 
+        #approach point and then hold position
+        #behavior=SequenceBehavior()
+        #behavior=ParallelBehavior()
+        #behavior.add_child(WanderRandomly(npc=self.other_ship,arena_size=(2000,2000),timescale=10*60) )
+        #behavior.add_child(MoveToPoint(npc=self.other_ship,point=Vec2d(200,800),point_threshold=10) )
+        #behavior.add_child(TurnTowardsPlayer(npc=self.other_ship,player=self.my_ship) )
+        #behavior.add_child(FireAtPlayer(npc=self.other_ship,player=self.my_ship) )
+        #self.npcs.append( behavior )
+        #self.npcs.append( MoveToPoint(npc=self.other_ship,point=Vec2d(200,800),point_threshold=5) )
+
+    def set_controller(self,controller):
+        self.controller=controller
+        self.hud.set_controller(controller)
+
+    def respawn(self):
+        self.my_ship=get_ship_factory().get_ship("ship5")        
+        self.schedule_add_object(self.my_ship)
+
+    def respawn_enemy(self):
+        enemy_choices=["ship1","ship2","ship3","ship4"]
+        self.other_ship=get_ship_factory().get_ship(random.choice(enemy_choices))
+        self.other_ship.body.position=Vec2d(0,800)        
+        self.schedule_add_object(self.other_ship)
+        behavior=ParallelBehavior()
+        behavior.add_child(WanderRandomly(npc=self.other_ship,timescale=10*60) )
+        self.other_ship.behavior_tree=behavior        
+
+       
     def schedule_add_object(self,obj):
         self.objects_to_add.append(obj)
 
@@ -75,75 +104,20 @@ class GameEngine:
         self.id_object_map[obj.body.id]=obj
 
     def add_decorator(self,dec):
-        self.decorators.append(dec)
-
-    def update_controls(self):
-        if self.controller is not None:
-            self.update_controller_input()
-            return
-  
-        #Mouse controls
-        #If mouse button 1 is pressed, the ship will move towards the mouse position
-        if pygame.mouse.get_pressed()[0]:
-            pos=pygame.mouse.get_pos()
-            world_pos=self.camera.get_world_position(pos)                
-            arrow=world_pos-self.my_ship.body.position
-            arrow=arrow.normalized()
-            desired_velocity=arrow*1000
-            self.my_ship.navigation_mode=NavigationMode.SET_VELOCITY_AND_DIRECTION
-            #self.my_ship.navigation_mode=NavigationMode.SET_DIRECTION
-            self.my_ship.desired_velocity=desired_velocity
-            self.my_ship.desired_direciton=arrow
-        else:
-            self.my_ship.navigation_mode=NavigationMode.ZERO_ANGULAR_VELOCITY
-
-    def update_controller_input(self):
-        axis_dead_zone=0.15
-        #left stick controls direction
-        axis0=self.controller.get_axis(0)  
-        axis1=self.controller.get_axis(1)  
-        if abs(axis0)>axis_dead_zone or abs(axis1)>axis_dead_zone:            
-            arrow=Vec2d(axis0,-axis1).normalized()
-            self.my_ship.set_desired_direction(arrow)
-            self.my_ship.set_pointing_navigation_mode(PointingNavigationMode.SET_DIRECTION)
-        else:
-            self.my_ship.set_pointing_navigation_mode(PointingNavigationMode.ZERO_ANGULAR_VELOCITY)
-
-        #right stick controls thrust
-        axis2=self.controller.get_axis(2)
-        axis3=self.controller.get_axis(3)
-
-        if abs(axis2)>axis_dead_zone or abs(axis3)>axis_dead_zone:
-            #arrow=Vec2d(axis2,-axis3).normalized()
-            arrow=Vec2d(axis2,-axis3)
-            #desired_velocity=arrow*1000
-            #self.my_ship.set_desired_velocity(desired_velocity)
-            #self.my_ship.set_velocity_navigation_mode(VelocityNavigationMode.SET_VELOCITY)            
-            self.my_ship.set_velocity_navigation_mode(VelocityNavigationMode.SET_THRUST)
-            self.my_ship.desired_thrust=arrow
-        else:
-            #if self.my_ship.velocity_navigation_mode==VelocityNavigationMode.SET_VELOCITY:
-            if self.my_ship.velocity_navigation_mode==VelocityNavigationMode.SET_THRUST:
-                self.my_ship.thrusters_off()
-            self.my_ship.set_velocity_navigation_mode(VelocityNavigationMode.MANUAL)            
-            
-
-
-        #right trigger controls firing
-        axis5=self.controller.get_axis(5)
-        
-        if axis5>0:       
-            self.my_ship.cannon.firing=True
-        else:   
-            self.my_ship.cannon.firing=False                          
-            
+        self.decorators.append(dec)   
 
     def update(self,ticks):
+        if self.my_ship not in self.objects and self.my_ship.is_dead:
+            self.respawn()
+
+        if self.other_ship not in self.objects and self.other_ship.is_dead:
+            self.respawn_enemy()
+
+        self.hud.update(ticks,self.my_ship)
+
         #update npcs
-        for npc in self.npcs:
-            npc.execute()
-        #update controls
-        self.update_controls()        
+        #for npc in self.npcs:
+        #    npc.execute()                      
 
         #update objects
         for obj in self.objects:
@@ -202,10 +176,15 @@ class GameEngine:
         self.camera.position+=delta_camera*0.01/self.camera.zoom
         upscale_length=100
         downscale_length=50
-        if delta_camera.length>upscale_length/self.camera.zoom and self.camera.zoom>self.min_camera_zoom:
+        dead_length=10
+        if ( delta_camera.length-dead_length>upscale_length/self.camera.zoom and self.camera.zoom>self.min_camera_zoom ) or self.camera.zoom>self.max_camera_zoom:
             self.camera.zoom*=0.995
-        elif delta_camera.length<downscale_length/self.camera.zoom and self.camera.zoom<self.max_camera_zoom:
+            if self.camera.zoom<self.min_camera_zoom:
+                self.camera.zoom=self.min_camera_zoom
+        elif ( delta_camera.length+dead_length<downscale_length/self.camera.zoom and self.camera.zoom<self.max_camera_zoom ) or self.camera.zoom<self.min_camera_zoom:
             self.camera.zoom*=1.005        
+            if self.camera.zoom>self.max_camera_zoom:
+                self.camera.zoom=self.max_camera_zoom
 
         self.width,self.height=screen.get_size()
         
@@ -215,10 +194,13 @@ class GameEngine:
         for obj in self.objects:
             obj.get_sprite().blit(screen,self.camera)  
         for obj in self.decorators: 
-            obj.get_sprite().blit(screen,self.camera)              
+            obj.get_sprite().blit(screen,self.camera)    
+        self.hud.draw(self.camera,screen,self,self.my_ship)          
         
         
     def handle_event(self,event):
+        self.hud.handle_event(event,self.my_ship)
+        """"""
         #print(event)
         if event.type == pygame.KEYDOWN:
             if event.key == pygame.K_UP:    
@@ -260,33 +242,16 @@ class GameEngine:
         if event.type == pygame.MOUSEBUTTONDOWN:
             if event.button==1:                
                 pos=pygame.mouse.get_pos()
-                """
-                world_pos=self.camera.get_world_position(pos)                
-
-                #pos=Vec2d(pos[0],-pos[1])
-                #arrow=pos-Vec2d(self.width,-self.height)/2                
-                arrow=world_pos-self.my_ship.body.position
-                arrow=arrow.normalized()
-                desired_velocity=arrow*100
-                #self.my_ship.navigation_mode=NavigationMode.SET_DIRECTION
-                #self.my_ship.desired_direciton=arrow
-                
-                self.my_ship.navigation_mode=NavigationMode.SET_VELOCITY_AND_DIRECTION
-                self.my_ship.desired_velocity=desired_velocity
-                self.my_ship.desired_direciton=arrow
-
-                #self.my_ship.set_desired_velocity(self.desired_velocity)
-                """
-
-
             if event.button==3:
                 ...
             if event.button==4:
-                if self.default_zoom<self.max_camera_zoom:
-                    self.default_zoom*=1.1
+                ...
+                #if self.default_zoom<self.max_camera_zoom:
+                #    self.default_zoom*=1.1
             if event.button==5:
-                if self.default_zoom>self.min_camera_zoom:
-                    self.default_zoom*=0.9
+                ...
+                #if self.default_zoom>self.min_camera_zoom:
+                #    self.default_zoom*=0.9
         if event.type == pygame.MOUSEBUTTONUP:
             if event.button==1:
                 self.desired_velocity=Vec2d(0,0)
@@ -297,12 +262,11 @@ class GameEngine:
     def bullet_hit(self,arbiter,space,data):
         #print("bullet hit")
         ship=self.id_object_map[arbiter.shapes[0].body.id]
-        bullet=self.id_object_map[arbiter.shapes[1].body.id]
-        #print("ship type is",type(ship))
-        #print("bullet type is",type(bullet))
-        #if ship==self.other_ship:
-        #self.other_ship.explode(self)
-        self.other_ship.do_damage(1)
+        bullet=self.id_object_map[arbiter.shapes[1].body.id] 
+        #TODO check if ship still exists        
+        if not isinstance(ship,ControllableShip):
+            return False
+        ship.do_damage(2)        
         bullet.flag_remove()
         spray=ParticleSprayDecorator(position=bullet.body.position,velocity=ship.body.velocity)
         self.add_decorator(spray)

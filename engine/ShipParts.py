@@ -29,6 +29,9 @@ class Thruster(ShipPart):
         self.thrust_color=kwargs["thrust_color"]
         self.sound_on=False #true if it should play a sound when on
 
+    def set_max_force(self,max_force):
+        self.max_force=max_force
+
     def set_throttle(self,throttle): #throttle is a float from 0 to 1
         self.throttle=throttle
         if self.throttle>1:
@@ -36,6 +39,9 @@ class Thruster(ShipPart):
         if self.throttle<0:
             self.throttle=0
         #print("throttle set to ",self.throttle)
+
+    def get_max_acceleration(self,ship):
+        return self.max_force/ship.get_mass()
 
 
     def update(self,ticks,engine,ship):
@@ -54,7 +60,7 @@ class Thruster(ShipPart):
             if self.sound_on:
                 get_sound_store().get_channel("engine").set_volume(0.5*self.throttle)
                 get_sound_store().get_channel("engine").unpause()                
-                print("sound unpau sed throttle {}".format(self.throttle))
+                #print("sound unpau sed throttle {}".format(self.throttle))
         else:
             if self.sound_on:
                 get_sound_store().get_channel("engine").pause()
@@ -120,16 +126,27 @@ class ManeuverThruster(ShipPart):
         self.thruster_3.update(ticks,engine,object)
         self.thruster_4.update(ticks,engine,object)
 
+    def set_max_force(self,max_force):
+        self.thruster_1.set_max_force(max_force)
+        self.thruster_2.set_max_force(max_force)
+        self.thruster_3.set_max_force(max_force)
+        self.thruster_4.set_max_force(max_force)
+
+    def get_max_acceleration(self,ship):
+        return max(self.thruster_1.get_max_acceleration(ship),self.thruster_2.get_max_acceleration(ship),self.thruster_3.get_max_acceleration(ship),self.thruster_4.get_max_acceleration(ship))
+
 
 
 class Cannon(ShipPart):
-    def __init__(self,attachment=Vec2d(0,0),cooldown=0.2,projectile_speed=300,projectile_radius=2,projectile_color=(0,255,0),direction=Vec2d(0,1)):
+    def __init__(self,attachment=Vec2d(0,0),cooldown=0.2,projectile_speed=600,direction=Vec2d(0,1)):
         self.attachment=attachment
         self.cooldown=cooldown
+        self.burst_size=3
+        self.burst_cooldown=1
         self.time_since_last_shot=0
+        self.burst_count=0
         self.projectile_speed=projectile_speed
-        self.projectile_radius=projectile_radius
-        self.projectile_color=projectile_color
+        #self.projectile_color=projectile_color
         self.firing=False
         self.direction=direction
 
@@ -138,20 +155,25 @@ class Cannon(ShipPart):
 
     def update(self,ticks,engine,ship):
         self.time_since_last_shot+=ticks/1000
-        if self.firing and self.time_since_last_shot>self.cooldown:
+        if self.time_since_last_shot>self.burst_cooldown:
+            self.burst_count=0
+        if self.firing and self.time_since_last_shot>self.cooldown and self.burst_count<self.burst_size:
             get_sound_store().play_sound("laser")
             self.time_since_last_shot=0            
-            projectile=Bullet(radius=self.projectile_radius,color=self.projectile_color)
+            projectile=Bullet()
             projectile.set_position(ship.body.position+self.attachment.rotated(ship.body.angle))
             projectile.set_angle(ship.body.angle)
             projectile.set_velocity(ship.body.velocity+self.direction.rotated(ship.body.angle)*self.projectile_speed)            
-            engine.schedule_add_object(projectile)            
+            engine.schedule_add_object(projectile)           
+            self.burst_count+=1             
+            projectile_momentum=projectile.get_mass()*projectile.body.velocity
+            ship.body.apply_impulse_at_local_point(-projectile_momentum,self.attachment)
             #make_space_explosion(engine,object.position,particle_count=100,particle_lifetime=1,mean_particle_speed=100,particle_speed_sigma=10,particle_radius=2,particle_color=(255,255,255),explosion_velocity=object.velocity+self.direction.rotated_by(object.rotation)*self.projectile_speed)
             #TODO add sound effect here
             #self.firing=False
 
 class LaserCannon(ShipPart):
-    def __init__(self,attachment=Vec2d(0,0),cooldown=0.2,projectile_speed=600,direction=Vec2d(0,1)):
+    def __init__(self,attachment=Vec2d(0,0),cooldown=0.2,projectile_speed=1600,direction=Vec2d(0,1)):
         self.attachment=attachment
         self.cooldown=cooldown
         self.time_since_last_shot=0
