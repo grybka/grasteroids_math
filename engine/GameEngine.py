@@ -24,7 +24,9 @@ class GameEngine:
         self.space.gravity = Vec2d(0.0, 0.0)
 
         ship_bullet_collision_handler=self.space.add_collision_handler(COLLISION_TYPE_SHIP, COLLISION_TYPE_BULLET)
-        ship_bullet_collision_handler.begin=self.bullet_hit
+        ship_bullet_collision_handler.post_solve=self.bullet_hit
+        ship_ship_collision_handler=self.space.add_collision_handler(COLLISION_TYPE_SHIP, COLLISION_TYPE_SHIP)
+        ship_ship_collision_handler.post_solve=self.ship_collision
 
         self.objects_to_add=[]        
         self.objects =[]
@@ -33,7 +35,7 @@ class GameEngine:
         self.background=Background()
         ...
         self.report_timer=0
-        self.report_interval=2000
+        self.report_interval=5000
         
         ...
 
@@ -41,7 +43,8 @@ class GameEngine:
         self.schedule_add_object(self.my_ship)
         self.my_ship.thruster.sound_on=True
 
-        self.respawn_enemy()
+        self.other_ship=None
+        #self.respawn_enemy()
         #self.other_ship=get_ship_factory().get_ship("ship2")        
         #self.other_ship.body.position=Vec2d(0,800)        
         #self.schedule_add_object(self.other_ship)
@@ -83,7 +86,7 @@ class GameEngine:
         self.schedule_add_object(self.my_ship)
 
     def respawn_enemy(self):
-        enemy_choices=["ship1","ship2","ship3","ship4"]
+        enemy_choices=["ship1","ship2","ship3","ship4","ship5","ship6","ship7"]
         self.other_ship=get_ship_factory().get_ship(random.choice(enemy_choices))
         self.other_ship.body.position=Vec2d(0,800)        
         self.schedule_add_object(self.other_ship)
@@ -110,7 +113,8 @@ class GameEngine:
         if self.my_ship not in self.objects and self.my_ship.is_dead:
             self.respawn()
 
-        if self.other_ship not in self.objects and self.other_ship.is_dead:
+        if self.other_ship is None or (self.other_ship not in self.objects and self.other_ship.is_dead):
+            ...
             self.respawn_enemy()
 
         self.hud.update(ticks,self.my_ship)
@@ -265,11 +269,24 @@ class GameEngine:
         bullet=self.id_object_map[arbiter.shapes[1].body.id] 
         #TODO check if ship still exists        
         if not isinstance(ship,ControllableShip):
-            return False
-        ship.do_damage(2)        
+            return True
+        damage=6
+        ship.do_damage(damage)        
         bullet.flag_remove()
         spray=ParticleSprayDecorator(position=bullet.body.position,velocity=ship.body.velocity)
         self.add_decorator(spray)
-
         return True
         
+    def ship_collision(self,arbiter,space,data):
+        ship1=self.id_object_map[arbiter.shapes[0].body.id]
+        ship2=self.id_object_map[arbiter.shapes[1].body.id] 
+        total_ke=arbiter.total_ke
+        ke_to_damage_coversion=1e7
+        damage=total_ke/ke_to_damage_coversion
+        if isinstance(ship1,ControllableShip):
+            ship1.do_damage(damage)
+        if isinstance(ship2,ControllableShip):
+            ship2.do_damage(damage)
+        return True
+
+        #print("collision ke is",total_ke)

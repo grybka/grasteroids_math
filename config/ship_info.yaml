@@ -1,0 +1,55 @@
+
+ship_common: &ship_common
+  maneuver_acceleration: 100.0
+  thruster_acceleration: 300.0
+  rotational_acceleration: 2.0
+  max_rotational_speed: 3.0
+  shield_recharge_rate: 0.5  
+
+ship1:
+  <<: *ship_common
+  tile_arrangement: "tile_arrangements/ship1.yaml"
+  maneuver_acceleration: 100.0
+  thruster_acceleration: 300.0
+  rotational_acceleration: 2.0
+ship2:
+  <<: *ship_common
+
+  tile_arrangement: "tile_arrangements/ship2.yaml"
+  maneuver_acceleration: 50.0
+  thruster_acceleration: 400.0
+  rotational_acceleration: 1.0
+ship3:
+  <<: *ship_common
+
+  tile_arrangement: "tile_arrangements/ship3.yaml"
+  maneuver_acceleration: 100.0
+  thruster_acceleration: 300.0
+  rotational_acceleration: 10.0
+  max_rotational_speed: 10.0
+ship4:
+  <<: *ship_common
+
+  tile_arrangement: "tile_arrangements/ship4.yaml"
+  maneuver_acceleration: 100.0
+  thruster_acceleration: 300.0
+  rotational_acceleration: 2.0
+ship5:
+  <<: *ship_common
+
+  tile_arrangement: "tile_arrangements/ship5.yaml"
+  maneuver_acceleration: 50.0
+  thruster_acceleration: 400.0
+  rotational_acceleration: 2.0
+ship6:
+  <<: *ship_common
+  tile_arrangement: "tile_arrangements/ship6.yaml"
+  maneuver_acceleration: 50.0
+  thruster_acceleration: 200.0
+  rotational_acceleration: 1.0
+ship7:
+  <<: *ship_common
+  tile_arrangement: "tile_arrangements/ship7.yaml"
+  maneuver_acceleration: 50.0
+  thruster_acceleration: 200.0
+  rotational_acceleration: 1.0

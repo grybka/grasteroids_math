@@ -229,7 +229,7 @@ class HealthBar(DrawableSprite):
         self.update_ship(ship)
         self.color_background=(255,255,255)
         self.color_bar_background=(0,0,0)
-        self.color_shields=(0,0,255)
+        self.color_shields=pygame.Color("aqua")
         self.color_health=(255,0,0)
         self.width=40
         self.bar_height=2

@@ -26,7 +26,7 @@ class MagnetileJointPair:
 
 #vertices must be in clockwise order
 class Magnetile(GameObject):
-    def __init__(self,position=Vec2d(0,0),vertices=[],color=None,angle=0):
+    def __init__(self,position=Vec2d(0,0),vertices=[],color=None,angle=0,lifetime=0):
         GameObject.__init__(self)
         self.vertices=[Vec2d(magnetile_scale*v[0],magnetile_scale*v[1]) for v in vertices]
         #generate magnets
@@ -76,6 +76,16 @@ class Magnetile(GameObject):
         else:
             self.color=color
         self.sprite=MagnetileSprite(self)
+        #lifecycle
+        self.max_lifetime=lifetime
+        self.lifetime=0
+
+    def update(self,ticks,engine):
+        super().update(ticks,engine)
+        self.lifetime+=ticks/1000
+        if self.lifetime>0:              
+            if self.lifetime>self.max_lifetime:
+                self.remove_flag=True
 
     def get_points(self):
         ret=[]
@@ -104,7 +114,7 @@ class Magnetile(GameObject):
         return Magnetile(self.body.position,new_vertices)
     
     def my_copy(self):
-        return Magnetile(self.body.position,self.get_points(),color=self.color,angle=self.body.angle)
+        return Magnetile(self.body.position,self.get_points(),color=self.color,angle=self.body.angle,lifetime=self.max_lifetime)
     
     def to_dict(self):
         position=[self.body.position[0],self.body.position[1]]

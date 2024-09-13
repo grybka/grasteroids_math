@@ -244,6 +244,7 @@ class MagnetileShip(MagnetileConstruction, ControllableShip):
         #this is a magnetile ship so disassosiate the magnetiles
         for magnetile in self.magnetiles:
             mt=magnetile.my_copy()
+            mt.max_lifetime=10 #make them fade away after 10 seconds
             mt.body.position=self.body.position+mt.body.position.rotated(self.body.angle)
             mt.body.velocity=self.body.velocity+mt.body.velocity.rotated(self.body.angle)
             mt.body.angle+=self.body.angle
@@ -280,7 +281,10 @@ class ShipFactory:
         ret=MagnetileShip(shape_fname=info["tile_arrangement"])
         ret.maneuver_thruster.set_max_force(info["maneuver_acceleration"]*ret.get_mass())
         ret.thruster.set_max_force(info["thruster_acceleration"]*ret.get_mass())
+        print("rotational acceleration is",info["rotational_acceleration"])
         ret.reaction_wheel.max_torque=info["rotational_acceleration"]*ret.get_moment()
+        ret.reaction_wheel.max_angular_velocity=info["max_rotational_speed"]        
+        print("max torque is",ret.reaction_wheel.max_torque)
         ret.shield_recharge_rate=info["shield_recharge_rate"]
         return ret
         

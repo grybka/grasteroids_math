@@ -4,6 +4,7 @@ from sprites.SpriteSheet import get_sprite_store
 from sprites.Sprite_To_Geometry import get_geometry_store
 from engine.Sound import get_sound_store
 from engine.Ship import get_ship_factory
+import pygame_gui
 
 
 
@@ -36,6 +37,7 @@ if displayinfo.current_h*0.8<max_y:
     max_y=int(displayinfo.current_h*0.8)
 resolution=(max_x,max_y)
 screen=pygame.display.set_mode(resolution)
+manager = pygame_gui.UIManager(resolution)
 
 #set up the sprite store
 get_sprite_store().load_sheet_info("config/sprites.yaml")
@@ -60,6 +62,7 @@ running=True
 while running:
     clock.tick(60)
     engine.update(clock.get_time())    
+    manager.update(time_delta)    
     
     engine.draw(screen)
     pygame.display.flip()
@@ -69,4 +72,5 @@ while running:
                 running=False
         if event.type==pygame.QUIT:
             running=False        
+        manager.process_events(event)
         engine.handle_event(event)
