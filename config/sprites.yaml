@@ -10,3 +10,6 @@ bullet:
 crosshairs1:
   file: "images\\crosshairs64.png"
   rect: [ 0, 0, 64, 64]
+crosshairs2:
+  file: "images\\crosshairs64.png"
+  rect: [ 256, 0, 64, 64]

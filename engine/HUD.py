@@ -2,6 +2,9 @@ from pymunk import Vec2d
 from sprites.SpriteSheet import get_sprite_store
 from sprites.Sprite import ImageSprite
 from engine.Ship import *
+from engine.NPC_control import *
+from engine.BehaviorTree import *
+
 #this deals with
 # taking the input and communicating it to the objects in the engin
 # drawing the extra information on top of the game map
@@ -10,16 +13,26 @@ class HUD:
     def __init__(self):
         self.crosshairs_distance_px=150
         self.indicator_length_px=10
+        self.camera=None
         ...
-        self.loaded=False        
+        self.loaded=False      
+        self.controller=None  
+
+        self.move_target=None
 
     def load_assets(self):
         self.crosshairs_image=get_sprite_store().get_sprite("crosshairs1",scale=1.0)
+        self.move_target_image=get_sprite_store().get_sprite("crosshairs2",scale=1.0)
 
     def set_controller(self,controller):
         self.controller=controller
 
+
     def update(self,ticks,ship):
+        if self.controller is not None:
+            self.update_controller_input(ticks,ship)
+
+    def update_controller_input(self,ticks,ship):
         self.my_ship=ship
         axis_dead_zone=0.15
         #left stick controls direction
@@ -45,19 +58,29 @@ class HUD:
         else:
             self.my_ship.set_velocity_navigation_mode(VelocityNavigationMode.SET_VELOCITY)            
             self.my_ship.set_desired_velocity(Vec2d(0,0))
-            
-
 
         #right trigger controls firing
         axis5=self.controller.get_axis(5)
-        
         if axis5>0:       
             self.my_ship.cannon.firing=True
         else:   
             self.my_ship.cannon.firing=False      
 
     def handle_event(self,event,ship):
-        pass
+        if event.type == pygame.KEYDOWN:
+            pass
+        if event.type == pygame.MOUSEBUTTONDOWN:
+            if event.button==1:
+                pos=pygame.mouse.get_pos()
+                target=self.camera.get_world_position(pos)
+                #ship.behavior_tree=MoveToPoint(ship,target)
+                ship.behavior_tree=ParallelBehavior([DoOnce(TurnTowardsPoint(ship,target)),MoveToPoint(ship,target)])
+                self.move_target=target
+                pass
+
+        if event.type == pygame.MOUSEBUTTONUP:
+            if event.button==1:
+                pass
 
     def draw(self,camera,screen,engine,ship):
         if not self.loaded:
@@ -73,5 +96,9 @@ class HUD:
         indicator_start=ship.desired_direction*(crosshairs_distance-0.5*indicator_length)+ship.body.position
         indicator_stop=ship.desired_direction*(crosshairs_distance+0.5*indicator_length)+ship.body.position
         pygame.draw.line(screen,(255,255,255),camera.get_screen_position(indicator_start),camera.get_screen_position(indicator_stop),2)
+        #Draw move target
+        if self.move_target is not None:
+            self.move_target_sprite=ImageSprite(self.move_target_image,self.move_target)
+            self.move_target_sprite.blit(screen,camera)
 
         

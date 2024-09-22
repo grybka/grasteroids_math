@@ -3,6 +3,7 @@ from engine.Ship import PointingNavigationMode, VelocityNavigationMode, Controll
 from pymunk import Vec2d
 import math
 import random 
+from engine.BehaviorTree import *
 
 def sign(x):    
     if x<0:
@@ -51,76 +52,6 @@ def angle_subtract(a,b):
 #I want to be pointing towards player ship
 #when there's a decent chance of hitting it, fire
 
-class BTreeResponse(Enum):
-    SUCCESS=1
-    FAILURE=2
-    RUNNING=3
-
-
-class BehaviorTree:
-    def __init__(self):
-        ...
-
-    def execute(self):
-        return BTreeResponse.FAILURE
-    
-#execute children in order until one fails, then return failure
-class SequenceBehavior(BehaviorTree):
-    def __init__(self,children=[]):
-        self.children=children
-
-    def add_child(self,child):
-        self.children.append(child)
-
-    def execute(self):
-        for child in self.children:
-            result=child.execute()
-            if result==BTreeResponse.FAILURE:
-                return BTreeResponse.FAILURE
-            if result==BTreeResponse.RUNNING:
-                return BTreeResponse.RUNNING
-        return BTreeResponse.SUCCESS
-    
-#execute children in order until one succeeds, then return success
-class SelectorBehavior(BehaviorTree):
-    def __init__(self,children=[]):
-        self.children=children
-
-    def add_child(self,child):
-        self.children.append(child)
-
-    def execute(self):
-        for child in self.children:
-            result=child.execute()
-            if result==BTreeResponse.SUCCESS:
-                return BTreeResponse.SUCCESS
-            if result==BTreeResponse.RUNNING:
-                return BTreeResponse.RUNNING
-        return BTreeResponse.FAILURE
-    
-#execute all children in parallel and return success only if all children return success
-#return failure if any child returns failure
-class ParallelBehavior(BehaviorTree):
-    def __init__(self,children=[]):
-        self.children=children
-
-    def add_child(self,child):
-        self.children.append(child)
-
-    def execute(self):        
-        any_running=False
-        any_failed=False
-        for child in self.children:
-            result=child.execute()
-            if result==BTreeResponse.FAILURE:
-                any_failed=True                
-            if result==BTreeResponse.RUNNING:
-                any_running=True
-        if any_failed:
-            return BTreeResponse.FAILURE                
-        if any_running:
-            return BTreeResponse.RUNNING
-        return BTreeResponse.SUCCESS
     
 class TurnTowardsPlayer(BehaviorTree):
     def __init__(self,npc,player,angle_threshold=0.1):
@@ -129,14 +60,24 @@ class TurnTowardsPlayer(BehaviorTree):
         self.angle_threshold=angle_threshold
 
     def execute(self):
-        desired_direction=self.player.body.position-self.npc.body.position
-        current_angle=self.npc.body.angle
+        return TurnTowardsPoint(self.npc,self.player.body.position,self.angle_threshold)
+        
+class TurnTowardsPoint(BehaviorTree):
+    def __init__(self,npc: ControllableShip, point,angle_threshold=0.1):
+        self.npc=npc
+        self.point=point
+        self.angle_threshold=angle_threshold
+
+    def execute(self):
+        desired_direction=self.point-self.npc.body.position
+        current_angle=self.npc.body.angle+math.pi/2
         if abs(desired_direction.angle-current_angle)<self.angle_threshold:
             return BTreeResponse.SUCCESS
-        self.npc.set_desired_direction(self.player.body.position-self.npc.body.position)
+        self.npc.set_desired_direction(desired_direction.normalized())
         self.npc.set_pointing_navigation_mode(PointingNavigationMode.SET_DIRECTION)                        
         return BTreeResponse.RUNNING
-        
+
+
 class MoveToPoint(BehaviorTree):
     def __init__(self,npc: ControllableShip ,point,point_threshold=5):
         self.npc=npc
@@ -202,7 +143,35 @@ class WanderRandomly(BehaviorTree):
             self.target=Vec2d(self.arena_size[0]+self.arena_size[2]*random.random(),self.arena_size[1]+self.arena_size[3]*random.random())
             print("New wander target",self.target)
             self.time_since_last_target=0
-        return MoveToPoint(self.npc,self.target).execute()
+        if MoveToPoint(self.npc,self.target).execute()==BTreeResponse.SUCCESS:
+            self.time_since_last_target=self.timescale
+        return BTreeResponse.RUNNING
+    
+class InterceptShip(BehaviorTree):
+    def __init__(self,npc,ship,ideal_velocity=1000):
+        self.npc=npc
+        self.ship=ship
+        self.ideal_velocity=ideal_velocity #magnitude
+
+    def execute(self):
+        #turn_part=TurnTowardsPlayer(self.npc,self.ship).execute()
+        self.npc.set_pointing_navigation_mode(PointingNavigationMode.SET_DIRECTION)                        
+
+        self.npc.set_velocity_navigation_mode(VelocityNavigationMode.SET_VELOCITY) 
+        dx=self.ship.body.position-self.npc.body.position
+        current_velocity=self.npc.body.velocity
+#        ideal_velocity_mag=min(self.ideal_velocity,current_velocity.length*1.1)
+        ideal_velocity_mag=self.ideal_velocity
+        target_velocity=ideal_velocity_mag*dx.normalized()+self.ship.body.velocity
+        self.npc.set_desired_velocity(target_velocity)
+        
+        dv=target_velocity-current_velocity
+        self.npc.set_desired_direction(dv.normalized())
+
+
+        return BTreeResponse.RUNNING           
+
+
 
 
 #Needs rework below

@@ -18,6 +18,7 @@ class GameEngine:
         self.camera.zoom=0.5        
         #self.default_zoom=1.0
         self.hud=HUD()
+        self.hud.camera=self.camera
 
         self.clock=clock
         self.space = pymunk.Space()
@@ -43,6 +44,10 @@ class GameEngine:
         self.schedule_add_object(self.my_ship)
         self.my_ship.thruster.sound_on=True
 
+
+        torpedo=Torpedo(position=Vec2d(-200,0),velocity=Vec2d(0,0))
+        torpedo.behavior_tree=InterceptShip(npc=torpedo,ship=self.my_ship)
+        self.schedule_add_object(torpedo)
         self.other_ship=None
         #self.respawn_enemy()
         #self.other_ship=get_ship_factory().get_ship("ship2")        
@@ -203,65 +208,7 @@ class GameEngine:
         
         
     def handle_event(self,event):
-        self.hud.handle_event(event,self.my_ship)
-        """"""
-        #print(event)
-        if event.type == pygame.KEYDOWN:
-            if event.key == pygame.K_UP:    
-                #self.my_ship.thruster.set_throttle(1)            
-                self.my_ship.maneuver_thruster.set_throttle_ns(1)
-                #self.thrust=Vec2d(0,1e5)
-            if event.key == pygame.K_DOWN:
-                #self.thrust=Vec2d(0,-1e5)              
-                self.my_ship.maneuver_thruster.set_throttle_ns(-1)
-            if event.key == pygame.K_LEFT:
-                #self.my_ship.reaction_wheel.set_throttle(1)                
-                self.my_ship.maneuver_thruster.set_throttle_ew(1)
-            if event.key == pygame.K_RIGHT:
-                self.my_ship.maneuver_thruster.set_throttle_ew(-1)
-                #self.my_ship.reaction_wheel.set_throttle(-1)                                
-            if event.key == pygame.K_SPACE:
-                self.my_ship.cannon.firing=True            
-        if event.type == pygame.KEYUP:
-            if event.key == pygame.K_UP:
-                #self.my_ship.thruster.set_throttle(0)
-                self.my_ship.maneuver_thruster.set_throttle_ns(0)
-
-                #self.thrust=Vec2d(0,0)                
-            if event.key == pygame.K_DOWN:
-                self.my_ship.maneuver_thruster.set_throttle_ns(0)
-
-                 
-                ...
-            if event.key == pygame.K_LEFT:
-                self.my_ship.reaction_wheel.set_throttle(0)     
-                self.my_ship.maneuver_thruster.set_throttle_ew(0)                           
-                ...                     
-            if event.key == pygame.K_RIGHT:
-                self.my_ship.reaction_wheel.set_throttle(0)      
-                self.my_ship.maneuver_thruster.set_throttle_ew(0)          
-                ...          
-            if event.key == pygame.K_SPACE:
-                self.my_ship.cannon.firing=False
-        if event.type == pygame.MOUSEBUTTONDOWN:
-            if event.button==1:                
-                pos=pygame.mouse.get_pos()
-            if event.button==3:
-                ...
-            if event.button==4:
-                ...
-                #if self.default_zoom<self.max_camera_zoom:
-                #    self.default_zoom*=1.1
-            if event.button==5:
-                ...
-                #if self.default_zoom>self.min_camera_zoom:
-                #    self.default_zoom*=0.9
-        if event.type == pygame.MOUSEBUTTONUP:
-            if event.button==1:
-                self.desired_velocity=Vec2d(0,0)
-                #self.my_ship.navigation_mode=NavigationMode.MANUAL
-                self.my_ship_navigation_mode=NavigationMode.ZERO_ANGULAR_VELOCITY
-                self.my_ship.thrusters_off()                
+        self.hud.handle_event(event,self.my_ship)              
 
     def bullet_hit(self,arbiter,space,data):
         #print("bullet hit")
@@ -290,3 +237,14 @@ class GameEngine:
         return True
 
         #print("collision ke is",total_ke)
+
+    def point_query(self,point,max_distance,filter=None):
+        if filter is None:
+            filter=pymunk.ShapeFilter()
+        bodies=self.space.point_query(point,max_distance,filter)
+        ret=[]
+        for b in bodies:
+            object=self.id_object_map[b.shape.body.id]
+            if object not in ret:
+                ret.append(object)
+        return ret

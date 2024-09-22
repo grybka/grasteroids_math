@@ -41,6 +41,7 @@ manager = pygame_gui.UIManager(resolution)
 
 #set up the sprite store
 get_sprite_store().load_sheet_info("config/sprites.yaml")
+get_sprite_store().preload_sprites()
 #set up the geometry store
 get_geometry_store().load_geometry_info("config/sprite_geometry.yaml")
 
@@ -61,7 +62,8 @@ engine.set_controller(controller)
 running=True
 while running:
     clock.tick(60)
-    engine.update(clock.get_time())    
+    time_delta = clock.get_time() 
+    engine.update(time_delta)    
     manager.update(time_delta)    
     
     engine.draw(screen)

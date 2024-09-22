@@ -12,7 +12,9 @@ class SpriteAnimationsLoader:
     def __init__(self):
         self.animation_info={}
         self.animation_frames={}
-        self.animation_info["explosion"]=SpriteAnimationFileSet("images/explosion","",9,0.1)
+        self.animation_info["explosion"]=SpriteAnimationFileSet("images/explosion","",9,0.050)
+        self.animation_info["explosion2"]=SpriteAnimationFileSet("images/explosion2","e_",15,0.050)
+
         self.animation_info["laser_beam"]=SpriteAnimationFileSet("images/pulsating_beam","beam_",9,0.1)
 
     def load(self,file_set:SpriteAnimationFileSet):

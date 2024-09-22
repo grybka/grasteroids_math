@@ -199,10 +199,10 @@ class ThrustDecorator(Decorator):
         return self.sprite
     
 class ExplosionDecorator(Decorator):
-    def __init__(self,position=Vec2d(0,0),velocity=Vec2d(0,0)):
+    def __init__(self,position=Vec2d(0,0),velocity=Vec2d(0,0),animation_name="explosion"):
         Decorator.__init__(self,position,velocity)
-        frames,frame_time=get_sprite_animation_store().get_animation("explosion")
-        self.sprite=AnimationSprite(frames,position)
+        frames,frame_time=get_sprite_animation_store().get_animation(animation_name)
+        self.sprite=AnimationSprite(frames,position,frame_time=frame_time)
         self.max_lifetime=len(frames)*frame_time
 
     def update(self,ticks):
@@ -241,4 +241,3 @@ class ParticleSprayDecorator(Decorator):
             sprite=CircleSprite(p[1],self.color,position)
             sprites.append(sprite)
         return CompoundSprite(sprites)
-

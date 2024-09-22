@@ -14,6 +14,8 @@ class SoundStore:
         self.sounds["explosion"].set_volume(0.2)
         self.sounds["engine"]=pygame.mixer.Sound("sounds/SpaceShip_Engine_Large_Loop_00.wav")
         self.sounds["engine"].set_volume(0.5)
+        self.sounds["explosion2"]=pygame.mixer.Sound("sounds/explosion_01.ogg")
+        self.sounds["explosion2"].set_volume(0.2)
         pygame.mixer.set_reserved(0)
         self.channel_mapping["engine"]=pygame.mixer.Channel(0)
 

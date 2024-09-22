@@ -127,13 +127,13 @@ class ImageSprite(DrawableSprite):
         screen.blit(image,(pos[0]-image.get_width()/2,pos[1]-image.get_height()/2))
 
 class AnimationSprite(DrawableSprite):
-    def __init__(self,animation,world_position=Vec2d(0,0),angle=0):
+    def __init__(self,animation,world_position=Vec2d(0,0),angle=0,frame_time=0.1):
         DrawableSprite.__init__(self,world_position)
         self.angle=angle
         self.animation=animation
         self.frame=0
         self.time_since_last_frame=0
-        self.frame_time=0.1
+        self.frame_time=frame_time
         self.clip_rect=None        
 
     def set_angle(self,angle):
@@ -166,9 +166,9 @@ class AnimationSprite(DrawableSprite):
         screen.blit(image,(pos[0]-image.get_width()/2,pos[1]-image.get_height()/2))
 
     def update(self,ticks):
-        self.time_since_last_frame+=ticks
+        self.time_since_last_frame+=ticks/1000
         if self.time_since_last_frame>self.frame_time:
-            self.time_since_last_frame=0
+            self.time_since_last_frame=self.time_since_last_frame-self.frame_time
             self.frame+=1
             if self.frame>=len(self.animation):
                 self.frame=0

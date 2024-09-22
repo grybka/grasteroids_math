@@ -22,6 +22,10 @@ class SpriteSheetStore:
         self.loaded_sprites={}
         self.sprite_info_file=None
 
+    def preload_sprites(self):
+        for sprite_name in self.sprite_info_file:
+            self.get_sprite(sprite_name)
+
     def load_sheet_info(self,info_fname):
         print("loading sheet info from",info_fname)
         with open(info_fname, 'r') as file:
