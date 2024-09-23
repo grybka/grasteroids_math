@@ -3,20 +3,11 @@ from pymunk import Vec2d
 from sprites.Sprite import *    
 from sprites.SpriteSheet import get_sprite_store
 from engine.ShipParts import *
-from enum import Enum
+from engine.Enums import *
 from engine.Magnetile import *
 from engine.BehaviorTree import BTreeResponse
 import random
 
-class PointingNavigationMode(Enum):
-    MANUAL=1
-    SET_DIRECTION=2
-    ZERO_ANGULAR_VELOCITY=3
-
-class VelocityNavigationMode(Enum):
-    MANUAL=1
-    SET_VELOCITY=2
-    SET_THRUST=3
 
 
 class ControllableShip(GameObject):
@@ -48,6 +39,9 @@ class ControllableShip(GameObject):
     
     def get_max_acceleration(self,direction):
         return Vec2d(0,0)
+    
+    def get_max_angular_velocity(self):
+        return 0
     
     def set_firing(self,firing):
         self.firing=firing
@@ -95,6 +89,9 @@ class Torpedo(ControllableShip):
         self.ship_parts.append(self.reaction_wheel)
         self.reactor_breach=False
 
+    def get_max_angular_velocity(self):
+        return self.reaction_wheel.max_angular_velocity
+
 
     def get_sprite(self):
         ns_dir=Vec2d(0,1).rotated(self.body.angle)
@@ -108,6 +105,10 @@ class Torpedo(ControllableShip):
     def update_navigation(self):
         self.navigation_set_direction()
         self.navigation_set_velocity()
+
+
+# I want to minimize chi=(v-desired_velocity)^2
+# dchi= 2*(v-desired_velocity) dot dv - 2*(v-desired_velocity) dot dv_desired
 
     def navigation_set_velocity(self):
         dead_velocity=0.1
@@ -189,7 +190,8 @@ class MagnetileShip(MagnetileConstruction, ControllableShip):
         self.ship_parts.append(self.reaction_wheel)
         self.maneuver_thruster=ManeuverThruster(attachment_front=bbox[3],attachment_side=abs(bbox[0]),attachment_back=abs(bbox[1]),max_force=2e3,thrust_color=(128,128,128),thrust_particle_size=5)
         self.ship_parts.append(self.maneuver_thruster)
-        self.cannon=Cannon(attachment=Vec2d(0,bbox[3]))
+        #self.cannon=Cannon(attachment=Vec2d(0,bbox[3]))
+        self.cannon=TorpedoLauncher(attachment=Vec2d(0,bbox[3]+10),ammunition_instance=Torpedo)
         self.ship_parts.append(self.cannon)
         #self.cannon=LaserCannon(attachment=Vec2d(0,bbox[3]))
         #self.ship_parts.append(self.cannon)
@@ -360,6 +362,10 @@ class MagnetileShip(MagnetileConstruction, ControllableShip):
         self.is_dead=True
 
     def get_sprite(self):
+        if self.health==self.max_health and self.shields==self.max_shields:
+            #don't show health bar for full health
+            #TODO move this to the HUD
+            return MagnetileConstruction.get_sprite(self)
         ship_sprite=MagnetileConstruction.get_sprite(self)
         healthbar=HealthBar(self)
         return CompoundSprite([ship_sprite,healthbar])        
@@ -390,6 +396,8 @@ class ShipFactory:
         ret.shield_recharge_rate=info["shield_recharge_rate"]
         return ret
         
+    def get_ship_names(self):
+        return list(self.ship_info.keys())
 
 _ship_factory=ShipFactory()
 

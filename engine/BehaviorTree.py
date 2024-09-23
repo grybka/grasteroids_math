@@ -1,13 +1,12 @@
-from enum import Enum
-class BTreeResponse(Enum):
-    SUCCESS=1
-    FAILURE=2
-    RUNNING=3
+from engine.Enums import *
+
+
 
 
 class BehaviorTree:
-    def __init__(self):
-        ...
+    def __init__(self,npc=None,data={}):
+        self.npc=npc #npc is the object that the behavior tree is controlling
+        self.data=data        
 
     def execute(self):
         return BTreeResponse.FAILURE

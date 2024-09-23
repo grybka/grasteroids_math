@@ -7,6 +7,7 @@ from sprites.Background import *
 from engine.Magnetile import *
 from engine.NPC_control import *
 from engine.HUD import *
+from engine.ComplexBehaviors import *
 
 class GameEngine:
     def __init__(self,clock):
@@ -40,15 +41,18 @@ class GameEngine:
         
         ...
 
-        self.my_ship=get_ship_factory().get_ship("ship3")        
-        self.schedule_add_object(self.my_ship)
-        self.my_ship.thruster.sound_on=True
+        self.my_ship=None
+        #self.my_ship=get_ship_factory().get_ship("ship3")        
+        #self.schedule_add_object(self.my_ship)
+        #self.my_ship.thruster.sound_on=True
 
 
-        torpedo=Torpedo(position=Vec2d(-200,0),velocity=Vec2d(0,0))
-        torpedo.behavior_tree=InterceptShip(npc=torpedo,ship=self.my_ship)
-        self.schedule_add_object(torpedo)
+        #torpedo=Torpedo(position=Vec2d(-200,0),velocity=Vec2d(0,0))
+        #torpedo.behavior_tree=TorpedoBehavior(npc=torpedo,engine=self)
+        #torpedo.behavior_tree=InterceptShip(npc=torpedo,ship=self.my_ship)
+        #self.schedule_add_object(torpedo)
         self.other_ship=None
+
         #self.respawn_enemy()
         #self.other_ship=get_ship_factory().get_ship("ship2")        
         #self.other_ship.body.position=Vec2d(0,800)        
@@ -67,28 +71,14 @@ class GameEngine:
         #self.add_object(ChargedSphere(position=Vec2d(60,200),charge=-1))
         self.desired_velocity=Vec2d(0,0)
 
-        #self.npcs=[]
-        #self.npcs.append( TurnTowardsPlayer(npc=self.other_ship,player=self.my_ship,angle_threshold=0.1) )        
-        #self.npcs.append( ApproachTarget(npc=self.other_ship,target=self.my_ship,radius=10) )
-        #self.npcs.append( ApproachToDistance(npc=self.other_ship,player=self.my_ship,too_close=100,too_far=200) )
-
-        #approach point and then hold position
-        #behavior=SequenceBehavior()
-        #behavior=ParallelBehavior()
-        #behavior.add_child(WanderRandomly(npc=self.other_ship,arena_size=(2000,2000),timescale=10*60) )
-        #behavior.add_child(MoveToPoint(npc=self.other_ship,point=Vec2d(200,800),point_threshold=10) )
-        #behavior.add_child(TurnTowardsPlayer(npc=self.other_ship,player=self.my_ship) )
-        #behavior.add_child(FireAtPlayer(npc=self.other_ship,player=self.my_ship) )
-        #self.npcs.append( behavior )
-        #self.npcs.append( MoveToPoint(npc=self.other_ship,point=Vec2d(200,800),point_threshold=5) )
-
     def set_controller(self,controller):
         self.controller=controller
         self.hud.set_controller(controller)
 
-    def respawn(self):
-        self.my_ship=get_ship_factory().get_ship("ship5")        
-        self.schedule_add_object(self.my_ship)
+    def spawn_player(self,ship_name):
+        self.my_ship=get_ship_factory().get_ship(ship_name)        
+        self.schedule_add_object(self.my_ship)        
+
 
     def respawn_enemy(self):
         enemy_choices=["ship1","ship2","ship3","ship4","ship5","ship6","ship7"]
@@ -96,7 +86,7 @@ class GameEngine:
         self.other_ship.body.position=Vec2d(0,800)        
         self.schedule_add_object(self.other_ship)
         behavior=ParallelBehavior()
-        behavior.add_child(WanderRandomly(npc=self.other_ship,timescale=10*60) )
+        #behavior.add_child(WanderRandomly(npc=self.other_ship,timescale=10*60) )                
         self.other_ship.behavior_tree=behavior        
 
        
@@ -114,14 +104,15 @@ class GameEngine:
     def add_decorator(self,dec):
         self.decorators.append(dec)   
 
-    def update(self,ticks):
-        if self.my_ship not in self.objects and self.my_ship.is_dead:
-            self.respawn()
+    def update(self,ticks):                
+        if self.my_ship is not None:
+            if self.my_ship not in self.objects and self.my_ship.is_dead:
+                self.my_ship=None        
 
         if self.other_ship is None or (self.other_ship not in self.objects and self.other_ship.is_dead):
             ...
             self.respawn_enemy()
-
+        
         self.hud.update(ticks,self.my_ship)
 
         #update npcs
@@ -168,6 +159,9 @@ class GameEngine:
         for dec in list(self.decorators):
             if dec.should_remove():
                 self.decorators.remove(dec)
+
+        if self.my_ship is None:
+            return
         
         self.report_timer+=ticks
         if self.report_timer>self.report_interval:               
@@ -179,9 +173,12 @@ class GameEngine:
             self.report_timer=0
 
     def draw(self,screen):
-        self.camera.set_screen(screen)
+        self.camera.set_screen(screen)        
         #Do camera tracking
-        delta_camera=self.my_ship.body.position-self.camera.position        
+        if self.my_ship is not None:
+            delta_camera=self.my_ship.body.position-self.camera.position        
+        else:
+            delta_camera=Vec2d(0,0)-self.camera.position
         self.camera.position+=delta_camera*0.01/self.camera.zoom
         upscale_length=100
         downscale_length=50
@@ -203,25 +200,27 @@ class GameEngine:
         for obj in self.objects:
             obj.get_sprite().blit(screen,self.camera)  
         for obj in self.decorators: 
-            obj.get_sprite().blit(screen,self.camera)    
-        self.hud.draw(self.camera,screen,self,self.my_ship)          
+            obj.get_sprite().blit(screen,self.camera)   
+        if self.my_ship is not None: 
+            self.hud.draw(self.camera,screen,self,self.my_ship)          
         
         
     def handle_event(self,event):
         self.hud.handle_event(event,self.my_ship)              
 
     def bullet_hit(self,arbiter,space,data):
-        #print("bullet hit")
+        print("bullet hit body id is",arbiter.shapes[0].body.id)
         ship=self.id_object_map[arbiter.shapes[0].body.id]
         bullet=self.id_object_map[arbiter.shapes[1].body.id] 
         #TODO check if ship still exists        
         if not isinstance(ship,ControllableShip):
             return True
-        damage=6
+        damage=4
         ship.do_damage(damage)        
-        bullet.flag_remove()
-        spray=ParticleSprayDecorator(position=bullet.body.position,velocity=ship.body.velocity)
-        self.add_decorator(spray)
+        if ship.get_shields()[0]<0:
+            bullet.flag_remove()
+            spray=ParticleSprayDecorator(position=bullet.body.position,velocity=ship.body.velocity)
+            self.add_decorator(spray)
         return True
         
     def ship_collision(self,arbiter,space,data):

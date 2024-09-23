@@ -29,15 +29,18 @@ class HUD:
 
 
     def update(self,ticks,ship):
-        if self.controller is not None:
+        if self.controller is not None and ship is not None:
             self.update_controller_input(ticks,ship)
 
-    def update_controller_input(self,ticks,ship):
+    def update_controller_input(self,ticks,ship):        
         self.my_ship=ship
         axis_dead_zone=0.15
-        #left stick controls direction
-        axis0=self.controller.get_axis(0)  
-        axis1=self.controller.get_axis(1)  
+        #right stick controls direction
+        axis2=self.controller.get_axis(0)  
+        axis3=self.controller.get_axis(1)  
+        #legt stick controls thrust
+        axis0=self.controller.get_axis(2)
+        axis1=self.controller.get_axis(3)
         if abs(axis0)>axis_dead_zone or abs(axis1)>axis_dead_zone:            
             arrow=Vec2d(axis0,-axis1).normalized()
             self.my_ship.set_desired_direction(arrow)
@@ -45,9 +48,7 @@ class HUD:
         else:
             self.my_ship.set_pointing_navigation_mode(PointingNavigationMode.ZERO_ANGULAR_VELOCITY)
 
-        #right stick controls thrust
-        axis2=self.controller.get_axis(2)
-        axis3=self.controller.get_axis(3)
+        
 
         if abs(axis2)>axis_dead_zone or abs(axis3)>axis_dead_zone:     
             arrow=Vec2d(axis2,-axis3)                  
@@ -67,6 +68,8 @@ class HUD:
             self.my_ship.cannon.firing=False      
 
     def handle_event(self,event,ship):
+        if ship is None:
+            return
         if event.type == pygame.KEYDOWN:
             pass
         if event.type == pygame.MOUSEBUTTONDOWN:

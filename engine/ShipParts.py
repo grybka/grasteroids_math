@@ -2,6 +2,7 @@ from pymunk import Vec2d
 from sprites.Sprite import *
 from engine.GameObjects import *
 from engine.Sound import *
+from engine.ComplexBehaviors import *
 
 class ShipPart:
     def __init__(self,attachement=Vec2d(0,0)):
@@ -138,7 +139,7 @@ class ManeuverThruster(ShipPart):
 
 
 class Cannon(ShipPart):
-    def __init__(self,attachment=Vec2d(0,0),cooldown=0.2,projectile_speed=600,direction=Vec2d(0,1)):
+    def __init__(self,attachment=Vec2d(0,0),cooldown=0.2,projectile_speed=1300,direction=Vec2d(0,1)):
         self.attachment=attachment
         self.cooldown=cooldown
         self.burst_size=3
@@ -171,6 +172,31 @@ class Cannon(ShipPart):
             #make_space_explosion(engine,object.position,particle_count=100,particle_lifetime=1,mean_particle_speed=100,particle_speed_sigma=10,particle_radius=2,particle_color=(255,255,255),explosion_velocity=object.velocity+self.direction.rotated_by(object.rotation)*self.projectile_speed)
             #TODO add sound effect here
             #self.firing=False
+
+class TorpedoLauncher(ShipPart):
+    def __init__(self,attachment=Vec2d(0,0),cooldown=1,launch_velocity=200,direction=Vec2d(0,1),ammunition_instance=None):
+        self.attachment=attachment
+        self.cooldown=cooldown
+        self.time_since_last_shot=0
+        self.firing=False
+        self.direction=direction
+        self.launch_velocity=launch_velocity
+        self.ammunition_instance=ammunition_instance
+
+    def fire(self):
+        self.firing=True
+
+    def update(self, ticks, engine, ship):
+        self.time_since_last_shot+=ticks/1000
+        if self.firing==True and self.time_since_last_shot>self.cooldown:
+            self.time_since_last_shot=0
+            torpedo=self.ammunition_instance()
+            torpedo.set_position(ship.body.position+self.attachment.rotated(ship.body.angle))
+            torpedo.set_angle(ship.body.angle)
+            torpedo.set_velocity(ship.body.velocity+self.direction.rotated(ship.body.angle)*self.launch_velocity)
+            torpedo.behavior_tree=TorpedoBehavior(torpedo,engine)
+            engine.schedule_add_object(torpedo)
+            self.firing=False
 
 class LaserCannon(ShipPart):
     def __init__(self,attachment=Vec2d(0,0),cooldown=0.2,projectile_speed=1600,direction=Vec2d(0,1)):

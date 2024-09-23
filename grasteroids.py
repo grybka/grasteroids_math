@@ -4,7 +4,11 @@ from sprites.SpriteSheet import get_sprite_store
 from sprites.Sprite_To_Geometry import get_geometry_store
 from engine.Sound import get_sound_store
 from engine.Ship import get_ship_factory
+
 import pygame_gui
+from gui.GUI import *
+from pygame_gui.elements import UIButton
+from game_state.PlayGameState import PlayGameState,GameState
 
 
 
@@ -37,7 +41,9 @@ if displayinfo.current_h*0.8<max_y:
     max_y=int(displayinfo.current_h*0.8)
 resolution=(max_x,max_y)
 screen=pygame.display.set_mode(resolution)
-manager = pygame_gui.UIManager(resolution)
+
+
+
 
 #set up the sprite store
 get_sprite_store().load_sheet_info("config/sprites.yaml")
@@ -56,17 +62,30 @@ get_sound_store().get_channel("engine").pause()
 get_ship_factory().load_ship_info("config/ship_info.yaml")
 
 
+
+
+
+
 #loop through game engine
 engine=GameEngine(clock)
 engine.set_controller(controller)
+manager = pygame_gui.UIManager(resolution)
+
+state=PlayGameState(manager,engine)
+
+
 running=True
 while running:
     clock.tick(60)
     time_delta = clock.get_time() 
+    state.update(time_delta)
     engine.update(time_delta)    
     manager.update(time_delta)    
     
-    engine.draw(screen)
+    engine.draw(screen)    
+    manager.draw_ui(screen)
+    
+
     pygame.display.flip()
     for event in pygame.event.get():
         if event.type==pygame.KEYDOWN:
@@ -75,4 +94,4 @@ while running:
         if event.type==pygame.QUIT:
             running=False        
         manager.process_events(event)
-        engine.handle_event(event)
+        engine.handle_event(event)        

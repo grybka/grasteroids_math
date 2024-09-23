@@ -1,5 +1,5 @@
-from enum import Enum
-from engine.Ship import PointingNavigationMode, VelocityNavigationMode, ControllableShip
+
+from engine.Enums import *
 from pymunk import Vec2d
 import math
 import random 
@@ -63,7 +63,7 @@ class TurnTowardsPlayer(BehaviorTree):
         return TurnTowardsPoint(self.npc,self.player.body.position,self.angle_threshold)
         
 class TurnTowardsPoint(BehaviorTree):
-    def __init__(self,npc: ControllableShip, point,angle_threshold=0.1):
+    def __init__(self,npc, point,angle_threshold=0.1):
         self.npc=npc
         self.point=point
         self.angle_threshold=angle_threshold
@@ -79,7 +79,7 @@ class TurnTowardsPoint(BehaviorTree):
 
 
 class MoveToPoint(BehaviorTree):
-    def __init__(self,npc: ControllableShip ,point,point_threshold=5):
+    def __init__(self,npc ,point,point_threshold=5):
         self.npc=npc
         self.point=point
         self.point_threshold=point_threshold
@@ -136,6 +136,7 @@ class WanderRandomly(BehaviorTree):
         self.target=Vec2d(0,0)
         self.timescale=timescale
         self.time_since_last_target=timescale
+        self.sub_behavior=None
 
     def execute(self):
         self.time_since_last_target+=1
@@ -143,26 +144,44 @@ class WanderRandomly(BehaviorTree):
             self.target=Vec2d(self.arena_size[0]+self.arena_size[2]*random.random(),self.arena_size[1]+self.arena_size[3]*random.random())
             print("New wander target",self.target)
             self.time_since_last_target=0
-        if MoveToPoint(self.npc,self.target).execute()==BTreeResponse.SUCCESS:
-            self.time_since_last_target=self.timescale
+            self.sub_behavior=ParallelBehavior([DoOnce(TurnTowardsPoint(self.npc,self.target)),MoveToPoint(self.npc,self.target)])
+        if self.sub_behavior is not None:
+            if self.sub_behavior.execute()==BTreeResponse.SUCCESS:
+                self.time_since_last_target=self.timescale
+        #if MoveToPoint(self.npc,self.target).execute()==BTreeResponse.SUCCESS:
+            #self.time_since_last_target=self.timescale
         return BTreeResponse.RUNNING
     
 class InterceptShip(BehaviorTree):
-    def __init__(self,npc,ship,ideal_velocity=1000):
-        self.npc=npc
-        self.ship=ship
+    def __init__(self,npc,target_name,data,ideal_velocity=1000):
+        super().__init__(npc,data)        
+        self.target_name=target_name
         self.ideal_velocity=ideal_velocity #magnitude
 
     def execute(self):
+        if self.target_name not in self.data:
+            return BTreeResponse.FAILURE
+        ship=self.data[self.target_name]
+
         #turn_part=TurnTowardsPlayer(self.npc,self.ship).execute()
         self.npc.set_pointing_navigation_mode(PointingNavigationMode.SET_DIRECTION)                        
 
         self.npc.set_velocity_navigation_mode(VelocityNavigationMode.SET_VELOCITY) 
-        dx=self.ship.body.position-self.npc.body.position
+        dx=ship.body.position-self.npc.body.position
         current_velocity=self.npc.body.velocity
 #        ideal_velocity_mag=min(self.ideal_velocity,current_velocity.length*1.1)
         ideal_velocity_mag=self.ideal_velocity
-        target_velocity=ideal_velocity_mag*dx.normalized()+self.ship.body.velocity
+        target_velocity=ideal_velocity_mag*dx.normalized()+ship.body.velocity
+        #if it is moving out of my field of view faster than I can turn, then just try to match velocity
+        omega=dx.cross(current_velocity)/(dx.length**2)
+        print("omega {} max angular velocity {}".format(omega,self.npc.get_max_angular_velocity()))
+        
+        if abs(omega)>self.npc.get_max_angular_velocity():
+            print("omega",omega)
+            target_velocity=ship.body.velocity
+
+
+
         self.npc.set_desired_velocity(target_velocity)
         
         dv=target_velocity-current_velocity
@@ -171,61 +190,35 @@ class InterceptShip(BehaviorTree):
 
         return BTreeResponse.RUNNING           
 
-
-
-
-#Needs rework below
-
-class ApproachToDistance(BehaviorTree):
-    def __init__(self,npc,player,too_close=100,too_far=200):
-        self.npc=npc
-        self.player=player
-        self.too_close=too_close
-        self.too_far=too_far
-        self.op1=ApproachTarget(npc,player,success_radius=too_close,ideal_velocity=1000)
-        self.op2=AvoidTarget(npc,player,success_radius=too_far,ideal_velocity=1000)
-        
+class SearchForTarget(BehaviorTree):
+    def __init__(self,npc,data,engine,target_name="target"):
+        super().__init__(npc,data)
+        self.engine=engine
+        self.max_distance=10000
+        self.angle_range=math.pi/4
+        self.last_target=None
+        self.target_name=target_name
 
     def execute(self):
-        if self.op1.execute()==BTreeResponse.SUCCESS:
+        position=self.npc.body.position
+        angle=self.npc.body.angle
+        objects=self.engine.point_query(position,self.max_distance)
+        objects_in_view_cone=[]
+        for object in objects:
+            dx=object.body.position-position
+            angle_to_object=dx.angle-math.pi/2
+            delta_angle=angle_subtract(angle_to_object,angle)
+            if abs(delta_angle)<self.angle_range and object!=self.npc:
+                objects_in_view_cone.append(object)
+        #if len(objects_in_view_cone)!=0:
+            #print("objects in view cone",objects_in_view_cone)
+        if len(objects_in_view_cone)==0:
+            return BTreeResponse.FAILURE        
+        if self.last_target in objects_in_view_cone:
             return BTreeResponse.SUCCESS
-        if self.op2.execute()==BTreeResponse.SUCCESS:
-            return BTreeResponse.SUCCESS
-        return BTreeResponse.RUNNING
-        
-    
-class ApproachTarget(BehaviorTree):
-    def __init__(self,npc,target,success_radius=5,ideal_velocity=1000):
-        self.npc=npc
-        self.target=target
-        self.success_radius=success_radius
-        self.ideal_velocity=ideal_velocity
-
-    def execute(self):
-        dx=self.target.body.position-self.npc.body.position
-        if dx.length<self.success_radius:
-            return BTreeResponse.SUCCESS
-        #TODO Figure out what this velocity is
-        self.npc.set_desired_velocity(self.ideal_velocity*dx.normalized()+self.target.body.velocity)
-        self.npc.set_velocity_navigation_mode(VelocityNavigationMode.SET_VELOCITY)
-        self.npc.set_desired_direction(self.target.body.position-self.npc.body.position)
-        self.npc.set_pointing_navigation_mode(PointingNavigationMode.SET_DIRECTION)
-        return BTreeResponse.RUNNING
-        
-class AvoidTarget(BehaviorTree):
-    def __init__(self,npc,target,success_radius=5,ideal_velocity=1000):
-        self.npc=npc
-        self.target=target
-        self.success_radius=success_radius
-        self.ideal_velocity=ideal_velocity
-
-    def execute(self):
-        dx=self.target.body.position-self.npc.body.position
-        if dx.length>self.success_radius:
-            return BTreeResponse.SUCCESS
-        #TODO Figure out what this velocity is
-        self.npc.set_desired_velocity(-self.ideal_velocity*dx.normalized()+self.target.body.velocity)
-        self.npc.set_velocity_navigation_mode(VelocityNavigationMode.SET_VELOCITY)
-        self.npc.set_desired_direction(-self.target.body.position+self.npc.body.position)
-        self.npc.set_pointing_navigation_mode(PointingNavigationMode.SET_DIRECTION)
-        return BTreeResponse.RUNNING
+        print("my object is ",self.npc)
+        print("objects in view cone",objects_in_view_cone)
+        print("my data is",self.data)
+        self.last_target=objects_in_view_cone[0]        
+        self.data[self.target_name]=self.last_target
+        return BTreeResponse.SUCCESS
