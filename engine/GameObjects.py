@@ -16,6 +16,7 @@ class GameObject:
         self.body=body 
         self.shape=shape #a pymunk shape or list of shapes
         self.remove_flag=False
+        self.is_trackable=False
 
     def set_position(self,position:Vec2d):
         self.body.position=position
@@ -84,6 +85,7 @@ class Bullet(GameObject):
 
         self.lifetime=0
         self.max_lifetime=10    
+        self.hit_this_frame=False
     
     def get_sprite(self):
         self.sprite.set_world_position(self.body.position)
@@ -93,6 +95,8 @@ class Bullet(GameObject):
     
     def update(self,ticks,engine):
         self.lifetime+=ticks/1000
+        self.hit_this_frame=False
+
 
     def flag_remove(self):
         self.lifetime=self.max_lifetime+1
@@ -166,6 +170,7 @@ class Decorator:
         self.velocity=velocity
         self.lifetime=0
         self.max_lifetime=1
+        self.top_layer=True #draw on top of objects
 
     def set_position(self,position):
         self.position=position
@@ -173,16 +178,31 @@ class Decorator:
     def set_velocity(self,velocity):
         self.velocity=velocity
 
-    def update(self,ticks):
+    def update(self,ticks,engine=None):
         self.position+=self.velocity*ticks/1000
         self.lifetime+=ticks/1000        
         
     def should_remove(self):
+        if self.max_lifetime<=0:
+            return False
         return self.lifetime>self.max_lifetime
     
     def get_sprite(self):
         return None
     
+#a decorator that has a standard image sprite
+class SpriteDecorator(Decorator):
+    def __init__(self,position=Vec2d(0,0),image_name="planet1"):        
+        super().__init__(position)
+        self.image_name=image_name
+        self.image=get_sprite_store().get_sprite(image_name)
+        self.sprite=ImageSprite(self.image,self.position)
+        self.max_lifetime=-1
+        self.top_layer=False
+
+    def get_sprite(self):
+        return self.sprite
+
 class ThrustDecorator(Decorator):
     def __init__(self,position=Vec2d(0,0),velocity=Vec2d(0,0),max_radius=10,lifetime=0.5,color=(255,0,0)):        
         Decorator.__init__(self,position,velocity)
@@ -190,7 +210,7 @@ class ThrustDecorator(Decorator):
         self.sprite=CircleSprite(self.max_radius,color,self.position)
         self.max_lifetime=lifetime
         
-    def update(self,ticks):
+    def update(self,ticks,engine=None):
         Decorator.update(self,ticks)
         self.sprite.set_radius(self.max_radius*(1-self.lifetime/self.max_lifetime))        
 
@@ -205,7 +225,7 @@ class ExplosionDecorator(Decorator):
         self.sprite=AnimationSprite(frames,position,frame_time=frame_time)
         self.max_lifetime=len(frames)*frame_time
 
-    def update(self,ticks):
+    def update(self,ticks,engine=None):
         Decorator.update(self,ticks)
         self.sprite.update(ticks)
 
@@ -228,7 +248,7 @@ class ParticleSprayDecorator(Decorator):
         self.color=color
         self.max_lifetime=max([p[0] for p in self.particles])        
 
-    def update(self,ticks):
+    def update(self,ticks,engine=None):
         Decorator.update(self,ticks)                
 
     def get_sprite(self):
@@ -241,3 +261,24 @@ class ParticleSprayDecorator(Decorator):
             sprite=CircleSprite(p[1],self.color,position)
             sprites.append(sprite)
         return CompoundSprite(sprites)
+
+class ShipSpawnDecorator(Decorator):
+    def __init__(self,position,ship):
+        Decorator.__init__(self,position)
+        self.ship=ship
+        
+    def update(self,ticks,engine):
+        Decorator.update(self,ticks)
+        if self.should_remove():
+            engine.schedule_add_object(self.ship)
+
+    def get_sprite(self):
+        #scale=1-self.lifetime/self.max_lifetime
+        scale=self.lifetime/self.max_lifetime
+        image=self.ship.get_sprite().get_image()
+        to_blit=pygame.transform.scale(image,(int(image.get_width()*scale),int(image.get_height()*scale)))
+        return ImageSprite(to_blit,self.position)
+
+
+
+        

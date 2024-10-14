@@ -2,7 +2,7 @@ from pymunk import Vec2d
 from sprites.Sprite import *
 from engine.GameObjects import *
 from engine.Sound import *
-from engine.ComplexBehaviors import *
+from behavior_tree.ComplexBehaviors import *
 
 class ShipPart:
     def __init__(self,attachement=Vec2d(0,0)):
@@ -171,7 +171,7 @@ class Cannon(ShipPart):
             ship.body.apply_impulse_at_local_point(-projectile_momentum,self.attachment)
             #make_space_explosion(engine,object.position,particle_count=100,particle_lifetime=1,mean_particle_speed=100,particle_speed_sigma=10,particle_radius=2,particle_color=(255,255,255),explosion_velocity=object.velocity+self.direction.rotated_by(object.rotation)*self.projectile_speed)
             #TODO add sound effect here
-            #self.firing=False
+            self.firing=False
 
 class TorpedoLauncher(ShipPart):
     def __init__(self,attachment=Vec2d(0,0),cooldown=1,launch_velocity=200,direction=Vec2d(0,1),ammunition_instance=None):
@@ -194,6 +194,7 @@ class TorpedoLauncher(ShipPart):
             torpedo.set_position(ship.body.position+self.attachment.rotated(ship.body.angle))
             torpedo.set_angle(ship.body.angle)
             torpedo.set_velocity(ship.body.velocity+self.direction.rotated(ship.body.angle)*self.launch_velocity)
+            torpedo.desired_direction=Vec2d(0,1).rotated(ship.body.angle)
             torpedo.behavior_tree=TorpedoBehavior(torpedo,engine)
             engine.schedule_add_object(torpedo)
             self.firing=False

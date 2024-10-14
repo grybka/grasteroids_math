@@ -3,7 +3,7 @@ from engine.Enums import *
 from pymunk import Vec2d
 import math
 import random 
-from engine.BehaviorTree import *
+from behavior_tree.BehaviorTree import *
 
 def sign(x):    
     if x<0:
@@ -109,23 +109,35 @@ class HoldPosition(BehaviorTree):
         return BTreeResponse.SUCCESS     
 
 class FireAtPlayer(BehaviorTree):
-    def __init__(self,npc,player,fire_threshold=0.1):
-        self.npc=npc
-        self.player=player
+    def __init__(self,npc,target_name,data,fire_threshold=0.1):
+        self.npc=npc        
         self.fire_threshold=fire_threshold
+        self.target_name=target_name
+        self.data=data
 
     def execute(self):
-        desired_direction=self.player.body.position-self.npc.body.position            
+        if self.target_name not in self.data:
+            return BTreeResponse.FAILURE
+        target=self.data[self.target_name]
+        dx=target.body.position-self.npc.body.position
+        delta_velocity=target.body.velocity-self.npc.body.velocity
+        projectile_speed=self.npc.cannon.projectile_speed
+        desired_direction=dx+(dx.length/projectile_speed)*delta_velocity
+
+
+
+
         delta_angle=angle_subtract(desired_direction.angle-math.pi/2,self.npc.body.angle)
 
+        #print("delta_angle",delta_angle)
         if abs(delta_angle)<self.fire_threshold:
             self.npc.set_firing(True)
             #print("fire")
-            return BTreeResponse.SUCCESS
-        #print("delta_angle",delta_angle)
+            return BTreeResponse.RUNNING
+
         
         self.npc.set_firing(False)
-        self.npc.set_desired_direction(self.player.body.position-self.npc.body.position)
+        self.npc.set_desired_direction(target.body.position-self.npc.body.position)
         self.npc.set_pointing_navigation_mode(PointingNavigationMode.SET_DIRECTION)                        
         return BTreeResponse.RUNNING
 
@@ -169,20 +181,26 @@ class InterceptShip(BehaviorTree):
         self.npc.set_velocity_navigation_mode(VelocityNavigationMode.SET_VELOCITY) 
         dx=ship.body.position-self.npc.body.position
         current_velocity=self.npc.body.velocity
-#        ideal_velocity_mag=min(self.ideal_velocity,current_velocity.length*1.1)
-        ideal_velocity_mag=self.ideal_velocity
+        ideal_velocity_mag=min(self.ideal_velocity,current_velocity.length+self.ideal_velocity*0.1)
+        #ideal_velocity_mag=self.ideal_velocity
         target_velocity=ideal_velocity_mag*dx.normalized()+ship.body.velocity
         #if it is moving out of my field of view faster than I can turn, then just try to match velocity
-        omega=dx.cross(current_velocity)/(dx.length**2)
-        print("omega {} max angular velocity {}".format(omega,self.npc.get_max_angular_velocity()))
-        
+        omega=dx.cross(current_velocity-ship.body.velocity)/(dx.length**2)
+        #print("omega {} max angular velocity {}".format(omega,self.npc.get_max_angular_velocity()))
         if abs(omega)>self.npc.get_max_angular_velocity():
-            print("omega",omega)
+            #print("omega",omega)
             target_velocity=ship.body.velocity
-
-
-
-        self.npc.set_desired_velocity(target_velocity)
+            self.npc.set_velocity_navigation_mode(VelocityNavigationMode.SET_THRUST)
+            self.npc.desired_thrust=Vec2d(0,0)
+        #if it's too far out of my field of view anyways, turn off the thrusters
+        my_direction=Vec2d(0,1).rotated(self.npc.body.angle).angle
+        if abs(angle_subtract(target_velocity.angle,my_direction))<math.pi/4:
+            self.npc.set_desired_velocity(target_velocity)
+        else:
+            print("manual target velocity angle {} my direction {}".format(target_velocity.angle,my_direction))
+            self.npc.set_velocity_navigation_mode(VelocityNavigationMode.SET_THRUST)
+            self.npc.desired_thrust=Vec2d(0,0)               
+            
         
         dv=target_velocity-current_velocity
         self.npc.set_desired_direction(dv.normalized())
@@ -205,20 +223,52 @@ class SearchForTarget(BehaviorTree):
         objects=self.engine.point_query(position,self.max_distance)
         objects_in_view_cone=[]
         for object in objects:
+            if object==self.npc:
+                continue
             dx=object.body.position-position
             angle_to_object=dx.angle-math.pi/2
             delta_angle=angle_subtract(angle_to_object,angle)
+            #print("angle to {} delta angle {}".format(object,delta_angle))
+            #print("self navigation mode {}".format(self.npc.pointing_navigation_mode))
             if abs(delta_angle)<self.angle_range and object!=self.npc:
-                objects_in_view_cone.append(object)
-        #if len(objects_in_view_cone)!=0:
-            #print("objects in view cone",objects_in_view_cone)
+                if object.is_trackable:
+                    objects_in_view_cone.append(object)        
         if len(objects_in_view_cone)==0:
-            return BTreeResponse.FAILURE        
+            self.data[self.target_name]=None
+            return BTreeResponse.FAILURE            
         if self.last_target in objects_in_view_cone:
-            return BTreeResponse.SUCCESS
-        print("my object is ",self.npc)
-        print("objects in view cone",objects_in_view_cone)
-        print("my data is",self.data)
+            self.data[self.target_name]=self.last_target
+            return BTreeResponse.SUCCESS        
         self.last_target=objects_in_view_cone[0]        
         self.data[self.target_name]=self.last_target
+        return BTreeResponse.SUCCESS
+    
+class ApproachToDistance(BehaviorTree):
+    def __init__(self,npc,target_name,data,distance=100):
+        super().__init__(npc,data)
+        self.target_name=target_name
+        self.distance=distance
+
+    def execute(self):        
+        if self.target_name not in self.data:
+            return BTreeResponse.FAILURE
+        target=self.data[self.target_name]
+        dx=target.body.position-self.npc.body.position
+        if dx.length<self.distance:
+            return BTreeResponse.SUCCESS
+        self.npc.set_pointing_navigation_mode(PointingNavigationMode.SET_DIRECTION)
+        self.npc.set_velocity_navigation_mode(VelocityNavigationMode.SET_VELOCITY)
+        max_speed=1000
+        self.npc.set_desired_velocity(dx.normalized()*max_speed)
+        self.npc.set_desired_direction(dx.normalized())
+
+        return BTreeResponse.RUNNING
+    
+class ZeroVelocity(BehaviorTree):
+    def __init__(self,npc):
+        self.npc=npc
+
+    def execute(self):
+        self.npc.set_velocity_navigation_mode(VelocityNavigationMode.SET_VELOCITY)
+        self.npc.set_desired_velocity(Vec2d(0,0))
         return BTreeResponse.SUCCESS

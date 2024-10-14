@@ -48,3 +48,9 @@ ship7:
   maneuver_acceleration: 50.0
   thruster_acceleration: 200.0
   rotational_acceleration: 1.0
+battleship_cruiser:
+  <<: *ship_common
+  tile_arrangement: "tile_arrangements/battleship_cruiser.yaml"
+  maneuver_acceleration: 50.0
+  thruster_acceleration: 200.0
+  rotational_acceleration: 1.0

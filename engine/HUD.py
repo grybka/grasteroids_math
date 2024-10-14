@@ -2,8 +2,8 @@ from pymunk import Vec2d
 from sprites.SpriteSheet import get_sprite_store
 from sprites.Sprite import ImageSprite
 from engine.Ship import *
-from engine.NPC_control import *
-from engine.BehaviorTree import *
+from behavior_tree.NPC_control import *
+from behavior_tree.BehaviorTree import *
 
 #this deals with
 # taking the input and communicating it to the objects in the engin
@@ -65,7 +65,12 @@ class HUD:
         if axis5>0:       
             self.my_ship.cannon.firing=True
         else:   
-            self.my_ship.cannon.firing=False      
+            self.my_ship.cannon.firing=False
+        axis4=self.controller.get_axis(4)
+        if axis4>0:
+            self.my_ship.missile_launcher.firing=True
+        else:
+            self.my_ship.missile_launcher.firing=False      
 
     def handle_event(self,event,ship):
         if ship is None:
@@ -103,5 +108,14 @@ class HUD:
         if self.move_target is not None:
             self.move_target_sprite=ImageSprite(self.move_target_image,self.move_target)
             self.move_target_sprite.blit(screen,camera)
-
+        #draw indicators for offscreen ships
+        for object in engine.objects: 
+            if isinstance(object,ControllableShip):
+                screen_pos=camera.get_screen_position(object.body.position)
+                if screen_pos[0]<0 or screen_pos[0]>screen.get_width() or screen_pos[1]<0 or screen_pos[1]>screen.get_height():
+                    center=( screen.get_width()/2,screen.get_height()/2)
+                    screen_rect=pygame.Rect(0,0,screen.get_width(),screen.get_height())
+                    new_center,indicator_pos=screen_rect.clipline(center,screen_pos)                
+                    pygame.draw.circle(screen,(255,0,0),indicator_pos,10,2)
+                
         

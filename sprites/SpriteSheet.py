@@ -36,15 +36,20 @@ class SpriteSheetStore:
 
     def get_sprite(self,sprite_name,scale=1):        
         if sprite_name in self.loaded_sprites:
-            return self.loaded_sprites[sprite_name]
+            if scale==1:
+                return self.loaded_sprites[sprite_name]
+            else:            
+                return pygame.transform.scale(self.loaded_sprites[sprite_name],(int(self.loaded_sprites[sprite_name].get_width()*scale),int(self.loaded_sprites[sprite_name].get_height()*scale)))  
+
         if sprite_name not in self.sprite_info_file:
             raise Exception("Sprite not found: "+sprite_name)
         if self.sprite_info_file[sprite_name]["file"] not in self.loaded_sheets:
             self.load_sheet(self.sprite_info_file[sprite_name]["file"])
         self.loaded_sprites[sprite_name]=self.loaded_sheets[self.sprite_info_file[sprite_name]["file"]].load_sprite(sprite_name,self.sprite_info_file[sprite_name])
+        print("sprite {} scale {}".format(sprite_name,scale))
         if scale==1:
             return self.loaded_sprites[sprite_name]
-        else:
+        else:            
             return pygame.transform.scale(self.loaded_sprites[sprite_name],(int(self.loaded_sprites[sprite_name].get_width()*scale),int(self.loaded_sprites[sprite_name].get_height()*scale)))        
 
 _sprite_store=SpriteSheetStore()

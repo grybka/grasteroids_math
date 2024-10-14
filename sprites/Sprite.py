@@ -46,6 +46,9 @@ class DrawableSprite:
     def set_world_position(self,position):
         self.world_position=position        
 
+    def get_bounds(self):
+        return (0,0,0,0) #left,top,width,height
+
     def blit(self,screen,camera):
         ...
     
@@ -58,6 +61,14 @@ class DebugPolySprite(DrawableSprite):
 
     def set_vertices(self,vertices):
         self.vertices=vertices
+
+    def get_bounds(self):
+        vertices=[camera.get_screen_position(self.world_position+v.rotated(self.angle)) for v in self.vertices]
+        min_x=min([v[0] for v in vertices])
+        min_y=min([v[1] for v in vertices])
+        max_x=max([v[0] for v in vertices])
+        max_y=max([v[1] for v in vertices])
+        return (min_x,min_y,max_x-min_x,max_y-min_y)        
     
     def blit(self,screen,camera):        
         vertices=[camera.get_screen_position(self.world_position+v.rotated(self.angle)) for v in self.vertices]
@@ -74,6 +85,14 @@ class MagnetileSprite(DrawableSprite):
     def __init__(self,magnetile):
         DrawableSprite.__init__(self,Vec2d(0,0))        
         self.magnetile=magnetile
+
+    def get_bounds(self):
+        vertices=[camera.get_screen_position(self.magnetile.body.position+v.rotated(self.magnetile.body.angle)) for v in self.magnetile.vertices]    
+        min_x=min([v[0] for v in vertices])
+        min_y=min([v[1] for v in vertices])
+        max_x=max([v[0] for v in vertices])
+        max_y=max([v[1] for v in vertices])
+        return (min_x,min_y,max_x-min_x,max_y-min_y)       
 
     def blit(self,screen,camera):        
         vertices=[camera.get_screen_position(self.magnetile.body.position+v.rotated(self.magnetile.body.angle)) for v in self.magnetile.vertices]
@@ -98,6 +117,10 @@ class CircleSprite(DrawableSprite):
     def set_radius(self,radius):
         self.radius=radius
 
+    def get_bounds(self):
+        pos=camera.get_screen_position(self.world_position)
+        return (pos[0]-self.radius,pos[1]-self.radius,2*self.radius,2*self.radius)
+
     def set_angle(self,angle):
         ...
     
@@ -111,6 +134,10 @@ class ImageSprite(DrawableSprite):
         self.angle=angle
         self.image=image
 
+    def get_bounds(self):
+        pos=camera.get_screen_position(self.world_position)
+        return (pos[0]-self.image.get_width()/2,pos[1]-self.image.get_height()/2,self.image.get_width(),self.image.get_height())
+        
 
     def set_angle(self,angle):
         self.angle=angle
@@ -181,6 +208,22 @@ class CompoundSprite(DrawableSprite):
     def add_sprite(self,sprite):
         self.sprites.append(sprite)
 
+    def get_bounds(self):
+        if len(self.sprites)==0:
+            return (0,0,0,0)
+        bounds=self.sprites[0].get_bounds()
+        min_x=bounds[0]
+        min_y=bounds[1]
+        max_x=bounds[0]+bounds[2]
+        max_y=bounds[1]+bounds[3]
+        for sprite in self.sprites[1:]:
+            b=sprite.get_bounds()
+            min_x=min(min_x,b[0])
+            min_y=min(min_y,b[1])
+            max_x=max(max_x,b[0]+b[2])
+            max_y=max(max_y,b[1]+b[3])
+        return (min_x,min_y,max_x-min_x,max_y-min_y)                
+
     def blit(self,screen,camera):        
         for sprite in self.sprites:
             sprite.blit(screen,camera)
@@ -207,7 +250,21 @@ class MagnetileConstructionSprite:
         for magnetile in self.construction.magnetiles:
             sprite=MagnetileSprite(magnetile)
             sprite.blit(self.image,empty_camera)
-        print("image width height ",self.image.get_width(),self.image.get_height())
+        print("image width height ",self.image.get_width(),self.image.get_height())    
+
+    def get_bounds(self):
+        image=self.get_image()
+        return (0,0,image.get_width(),image.get_height())    
+
+    def get_image(self):
+        if self.image is None:
+            self.build_image()
+        image=self.image
+        angle=self.construction.body.angle
+        #pos=camera.get_screen_position(self.construction.body.position)                    
+        if angle!=0:
+            image=pygame.transform.rotate(image,math.degrees(angle))
+        return image
         
     def blit(self,screen,camera):
         if self.image is None:

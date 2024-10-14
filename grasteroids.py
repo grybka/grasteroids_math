@@ -3,7 +3,7 @@ from engine.GameEngine import GameEngine
 from sprites.SpriteSheet import get_sprite_store
 from sprites.Sprite_To_Geometry import get_geometry_store
 from engine.Sound import get_sound_store
-from engine.Ship import get_ship_factory
+from engine.MagnetileShip import get_ship_factory
 
 import pygame_gui
 from gui.GUI import *

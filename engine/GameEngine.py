@@ -2,12 +2,13 @@ import pygame
 from sprites.Sprite import *
 from engine.GameObjects import *
 from engine.Ship import *
+from engine.MagnetileShip import *
 import pymunk
 from sprites.Background import *
 from engine.Magnetile import *
-from engine.NPC_control import *
+from behavior_tree.NPC_control import *
 from engine.HUD import *
-from engine.ComplexBehaviors import *
+from behavior_tree.ComplexBehaviors import *
 
 class GameEngine:
     def __init__(self,clock):
@@ -69,7 +70,9 @@ class GameEngine:
         #self.add_object(BarMagnet(position=Vec2d(40,240),length=20e4))
         #self.add_object(ChargedSphere(position=Vec2d(0,200),charge=1))
         #self.add_object(ChargedSphere(position=Vec2d(60,200),charge=-1))
-        self.desired_velocity=Vec2d(0,0)
+        #self.desired_velocity=Vec2d(0,0)
+        self.add_decorator(SpriteDecorator())
+
 
     def set_controller(self,controller):
         self.controller=controller
@@ -77,17 +80,19 @@ class GameEngine:
 
     def spawn_player(self,ship_name):
         self.my_ship=get_ship_factory().get_ship(ship_name)        
-        self.schedule_add_object(self.my_ship)        
+        #self.schedule_add_object(self.my_ship)        
+        self.add_decorator(ShipSpawnDecorator(position=Vec2d(0,0),ship=self.my_ship))
 
 
     def respawn_enemy(self):
-        enemy_choices=["ship1","ship2","ship3","ship4","ship5","ship6","ship7"]
+        enemy_choices=["ship1","ship2","ship3","ship4","ship5","ship6","ship7","battleship_cruiser"]
         self.other_ship=get_ship_factory().get_ship(random.choice(enemy_choices))
-        self.other_ship.body.position=Vec2d(0,800)        
+        offset=Vec2d(random.randrange(-1000,1000),random.randrange(-1000,1000))
+        self.other_ship.body.position=Vec2d(0,800)+offset
         self.schedule_add_object(self.other_ship)
-        behavior=ParallelBehavior()
-        #behavior.add_child(WanderRandomly(npc=self.other_ship,timescale=10*60) )                
-        self.other_ship.behavior_tree=behavior        
+        #behavior=ParallelBehavior()
+        #behavior.add_child(WanderRandomly(npc=self.other_ship,timescale=10*60) )   
+        self.other_ship.behavior_tree=AggressiveBehavior(npc=self.other_ship,engine=self)        
 
        
     def schedule_add_object(self,obj):
@@ -111,7 +116,7 @@ class GameEngine:
 
         if self.other_ship is None or (self.other_ship not in self.objects and self.other_ship.is_dead):
             ...
-            self.respawn_enemy()
+            #self.respawn_enemy()
         
         self.hud.update(ticks,self.my_ship)
 
@@ -143,7 +148,7 @@ class GameEngine:
 
         #update decorators
         for dec in self.decorators:
-            dec.update(ticks)
+            dec.update(ticks,self)
 
         #remove objects
         for obj in list(self.objects):
@@ -196,11 +201,15 @@ class GameEngine:
         
         screen.fill((0,0,0))
         self.background.draw(screen,self.camera)
-                            
+
+        for obj in self.decorators: 
+            if not obj.top_layer:
+                obj.get_sprite().blit(screen,self.camera)                       
         for obj in self.objects:
             obj.get_sprite().blit(screen,self.camera)  
         for obj in self.decorators: 
-            obj.get_sprite().blit(screen,self.camera)   
+            if obj.top_layer:
+                obj.get_sprite().blit(screen,self.camera)   
         if self.my_ship is not None: 
             self.hud.draw(self.camera,screen,self,self.my_ship)          
         
@@ -216,11 +225,14 @@ class GameEngine:
         if not isinstance(ship,ControllableShip):
             return True
         damage=4
+        if bullet.hit_this_frame:
+            return True
         ship.do_damage(damage)        
-        if ship.get_shields()[0]<0:
+        if ship.get_shields()[0]<=0:
             bullet.flag_remove()
             spray=ParticleSprayDecorator(position=bullet.body.position,velocity=ship.body.velocity)
             self.add_decorator(spray)
+        bullet.hit_this_frame=True        
         return True
         
     def ship_collision(self,arbiter,space,data):

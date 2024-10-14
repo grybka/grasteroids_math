@@ -3,7 +3,7 @@ import pygame_gui
 
 from pygame_gui.elements.ui_window import UIWindow
 from pygame_gui.elements import UIImage,UIButton,UIPanel,UIScrollingContainer
-from engine.Ship import get_ship_factory
+from engine.MagnetileShip import get_ship_factory
 from sprites.Sprite import Camera
 
 class ShipSelectPane(UIPanel):

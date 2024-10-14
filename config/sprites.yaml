@@ -7,9 +7,15 @@ ship2:
 bullet:
   file: "images\\32x32_spritesheet.png"
   rect: [ 0, 0, 32, 32]
+missile:
+  file: "images\\32x32_spritesheet.png"
+  rect: [ 32, 0, 32, 32]
 crosshairs1:
   file: "images\\crosshairs64.png"
   rect: [ 0, 0, 64, 64]
 crosshairs2:
   file: "images\\crosshairs64.png"
   rect: [ 256, 0, 64, 64]
+planet1:
+  file: "images\\256x256_spritesheet.png"
+  rect: [ 0, 0, 256, 256]
