@@ -116,7 +116,7 @@ class GameEngine:
 
         if self.other_ship is None or (self.other_ship not in self.objects and self.other_ship.is_dead):
             ...
-            #self.respawn_enemy()
+            self.respawn_enemy()
         
         self.hud.update(ticks,self.my_ship)
 

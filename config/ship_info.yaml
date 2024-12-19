@@ -28,8 +28,9 @@ ship4:
   <<: *ship_common
   tile_arrangement: "tile_arrangements/ship4.yaml"
   maneuver_acceleration: 100.0
-  thruster_acceleration: 300.0
+  thruster_acceleration: 600.0
   rotational_acceleration: 2.0
+  #make take less damage from hitting things
 ship5:
   <<: *ship_common
   tile_arrangement: "tile_arrangements/ship5.yaml"
@@ -48,6 +49,12 @@ ship7:
   maneuver_acceleration: 50.0
   thruster_acceleration: 200.0
   rotational_acceleration: 1.0
+ship8:
+  <<: *ship_common
+  tile_arrangement: "tile_arrangements/ship8.yaml"
+  maneuver_acceleration: 30.0
+  thruster_acceleration: 100.0
+  rotational_acceleration: 0.5
 battleship_cruiser:
   <<: *ship_common
   tile_arrangement: "tile_arrangements/battleship_cruiser.yaml"
