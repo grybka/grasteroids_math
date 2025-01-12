@@ -5,6 +5,7 @@ from pygame_gui.elements.ui_window import UIWindow
 from pygame_gui.elements import UIImage,UIButton,UIPanel,UIScrollingContainer
 from engine.MagnetileShip import get_ship_factory
 from sprites.Sprite import Camera
+from game_state.GameStates import *
 
 class ShipSelectPane(UIPanel):
     def __init__(self, ui_manager: pygame_gui.UIManager,ship_name,engine,container=None,top_offset=0):
@@ -56,7 +57,7 @@ class ShipSelectPane(UIPanel):
 
 class SelectShipWindow(UIWindow):
     def __init__(self, ui_manager: pygame_gui.UIManager,ship_names,engine):
-        super().__init__(pygame.Rect(100, 100, 400, 400), ui_manager, window_display_title='Select Ship')
+        super().__init__(pygame.Rect(100, 100, 400, 400), ui_manager, window_display_title='Select Small Ship')
         self.ui_manager = ui_manager
         #button_layout_rect = pygame.Rect(30, 20, 100, 20)
         #ship_factory=get_ship_factory()
@@ -69,11 +70,13 @@ class SelectShipWindow(UIWindow):
         self.choices=[]
         
         top_offset=10
-        for name in ship_names:            
+        #for name in ship_names:            
+        for name in ["ship1","ship2","ship3","ship4","ship5"]:
             panel=ShipSelectPane(ui_manager,name,engine,container=contents,top_offset=top_offset)
             self.choices.append(panel)
             top_offset+=panel.get_relative_rect().height+10
         contents.set_scrollable_area_dimensions((300, top_offset))
+        self.is_done=False
         
     def process_event(self, event):
         handled = super().process_event(event)
@@ -83,6 +86,7 @@ class SelectShipWindow(UIWindow):
                     print('Selected ship: '+choice.ship_name)              
                     self.engine.spawn_player(choice.ship_name)
                     handled=True
+                    self.is_done=True
                     self.kill()                                             
         return handled
     
@@ -91,6 +95,46 @@ class SelectShipWindow(UIWindow):
     
         ...
 
+class SingleVsMultiplayerSelectWindow(UIWindow):
+    def __init__(self, ui_manager: pygame_gui.UIManager,engine):
+        super().__init__(pygame.Rect(100, 100, 400, 400), ui_manager, window_display_title='Select Game Mode')
+        self.ui_manager = ui_manager
+        self.engine=engine
+        self.single_player_button=UIButton(relative_rect=pygame.Rect(50, 50, 300, 50),
+                        text="Single Player",
+                        manager=self.ui_manager,
+                        container=self)
+        self.multi_player_button=UIButton(relative_rect=pygame.Rect(50, 150, 300, 50),
+                        text="Multi Player",
+                        manager=self.ui_manager,
+                        container=self)
+        self.is_done=False
+        self.next_state_name=None
+        
+    def process_event(self, event):
+        handled = super().process_event(event)
+        if event.type == pygame_gui.UI_BUTTON_PRESSED:
+            if event.ui_element == self.single_player_button:
+                print('Selected single player')                              
+                self.kill()
+                self.is_done=True
+                handled=True
+            if event.ui_element == self.multi_player_button:
+                print('Selected multi player, time to crash')  
+                jcount=pygame.joystick.get_count()                
+                print("Joystick count: "+str(jcount))
+                if jcount<2:
+                    self.kill()
+                    self.next_state_name=GameStateName.NO_CONTROLLERS_MESSAGE
+                    self.is_done=True
+                    handled=True
+                else:
+                    self.engine.spawn_multi_player()
+                    self.kill()
+                    self.is_done=True
+                    handled=True
+        return handled
     
+
         
     

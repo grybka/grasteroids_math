@@ -280,5 +280,24 @@ class ShipSpawnDecorator(Decorator):
         return ImageSprite(to_blit,self.position)
 
 
-
-        
+class Asteroid(GameObject):
+    def __init__(self,position,velocity,size_scale=256):
+        super().__init__(position)
+        image_name="asteroid"+str(random.randint(1,2))
+        mass=size_scale*size_scale/4
+        moment=pymunk.moment_for_circle(mass,0,size_scale/2,(0,0))
+        self.body = pymunk.Body(mass, moment)   
+        self.body.position=position        
+        self.radius=size_scale/2
+        self.body.velocity=velocity
+        self.shape = pymunk.Circle(self.body, self.radius)
+        self.shape.collision_type=COLLISION_TYPE_SHIP
+        self.shape.elasticity=0.9
+        self.image_name=image_name
+        self.image=get_sprite_store().get_sprite(image_name)
+        self.sprite=ImageSprite(self.image,self.body.position)
+    
+    def get_sprite(self):
+        self.sprite.set_world_position(self.body.position)
+        self.sprite.set_angle(self.body.angle)        
+        return self.sprite

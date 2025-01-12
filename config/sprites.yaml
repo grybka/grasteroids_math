@@ -19,3 +19,9 @@ crosshairs2:
 planet1:
   file: "images\\256x256_spritesheet.png"
   rect: [ 0, 0, 256, 256]
+asteroid1:
+  file: "images\\256x256_spritesheet.png"
+  rect: [ 256, 0, 256, 256]
+asteroid2:
+  file: "images\\256x256_spritesheet.png"
+  rect: [ 512, 0, 256, 256]

@@ -8,8 +8,7 @@ from engine.MagnetileShip import get_ship_factory
 import pygame_gui
 from gui.GUI import *
 from pygame_gui.elements import UIButton
-from game_state.PlayGameState import PlayGameState,GameState
-
+from game_state.PlayGameState import *
 
 
 pygame.init()
@@ -71,16 +70,22 @@ engine=GameEngine(clock)
 engine.set_controller(controller)
 manager = pygame_gui.UIManager(resolution)
 
-state=PlayGameState(manager,engine)
+state_manager=GameStateManager()
+state_manager.state_dictionary[GameStateName.PLAY]=PlayGameState(manager,engine)
+state_manager.state_dictionary[GameStateName.SELECT_SHIP]=SelectShipState(manager,engine)
+state_manager.state_dictionary[GameStateName.SINGLE_VS_MULTI]=SingleVsMultiState(manager,engine)
+state_manager.state_dictionary[GameStateName.NO_CONTROLLERS_MESSAGE]=MessageWindowState(manager,engine,"Not Enough Controllers",GameStateName.SINGLE_VS_MULTI)
+state_manager.transition_to_state(GameStateName.SINGLE_VS_MULTI)
+
 
 
 running=True
 while running:
     clock.tick(60)
     time_delta = clock.get_time() 
-    state.update(time_delta)
-    engine.update(time_delta)    
-    manager.update(time_delta)    
+    state_manager.update(time_delta)
+    #engine.update(time_delta)    
+    manager.update(time_delta)        
     
     engine.draw(screen)    
     manager.draw_ui(screen)

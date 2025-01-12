@@ -72,6 +72,8 @@ class GameEngine:
         #self.add_object(ChargedSphere(position=Vec2d(60,200),charge=-1))
         #self.desired_velocity=Vec2d(0,0)
         self.add_decorator(SpriteDecorator())
+        for i in range(5):
+            self.spawn_asteroid()
 
 
     def set_controller(self,controller):
@@ -85,7 +87,8 @@ class GameEngine:
 
 
     def respawn_enemy(self):
-        enemy_choices=["ship1","ship2","ship3","ship4","ship5","ship6","ship7","battleship_cruiser"]
+        #enemy_choices=["ship1","ship2","ship3","ship4","ship5","ship6","ship7","battleship_cruiser"]
+        enemy_choices=["ship1","ship2","ship3","ship4","ship5"]
         self.other_ship=get_ship_factory().get_ship(random.choice(enemy_choices))
         offset=Vec2d(random.randrange(-1000,1000),random.randrange(-1000,1000))
         self.other_ship.body.position=Vec2d(0,800)+offset
@@ -94,6 +97,12 @@ class GameEngine:
         #behavior.add_child(WanderRandomly(npc=self.other_ship,timescale=10*60) )   
         self.other_ship.behavior_tree=AggressiveBehavior(npc=self.other_ship,engine=self)        
 
+    def spawn_asteroid(self):
+        offset=Vec2d(random.randrange(-1000,1000),random.randrange(-1000,1000))
+        velocity=Vec2d(random.randrange(-100,100),random.randrange(-100,100))
+
+        asteroid=Asteroid(offset,velocity,256)
+        self.schedule_add_object(asteroid)
        
     def schedule_add_object(self,obj):
         self.objects_to_add.append(obj)

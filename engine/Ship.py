@@ -4,7 +4,7 @@ from sprites.Sprite import *
 from sprites.SpriteSheet import get_sprite_store
 from engine.ShipParts import *
 from engine.Enums import *
-from engine.Magnetile import *
+
 from behavior_tree.BehaviorTree import BTreeResponse
 import random
 

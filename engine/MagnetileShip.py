@@ -1,5 +1,6 @@
 from engine.Ship import *
 from engine.Magnetile import *
+from engine.ShipParts import *
 
 class MagnetileShip(MagnetileConstruction, ControllableShip):
     def __init__(self,position=Vec2d(0,0),shape_fname=None):  
@@ -37,7 +38,10 @@ class MagnetileShip(MagnetileConstruction, ControllableShip):
         self.health=self.max_health
         self.max_shields=10
         self.shields=10
-        self.reactor_breach=False    
+        self.reactor_breach=False  
+
+    def get_active_weapon(self,engine):
+        return self.missile_launcher  
         
 
     def update(self,ticks,engine):

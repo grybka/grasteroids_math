@@ -19,6 +19,7 @@ class HUD:
         self.controller=None  
 
         self.move_target=None
+        self.my_font=pygame.font.Font(None,36)
 
     def load_assets(self):
         self.crosshairs_image=get_sprite_store().get_sprite("crosshairs1",scale=1.0)
@@ -83,12 +84,15 @@ class HUD:
                 target=self.camera.get_world_position(pos)
                 #ship.behavior_tree=MoveToPoint(ship,target)
                 ship.behavior_tree=ParallelBehavior([DoOnce(TurnTowardsPoint(ship,target)),MoveToPoint(ship,target)])
-                self.move_target=target
-                pass
+                self.move_target=target                
+            elif event.button==3:
+                ship.missile_launcher.firing=True                                
 
         if event.type == pygame.MOUSEBUTTONUP:
             if event.button==1:
                 pass
+            elif event.button==3:
+                ship.missile_launcher.firing=False
 
     def draw(self,camera,screen,engine,ship):
         if not self.loaded:
@@ -117,5 +121,10 @@ class HUD:
                     screen_rect=pygame.Rect(0,0,screen.get_width(),screen.get_height())
                     new_center,indicator_pos=screen_rect.clipline(center,screen_pos)                
                     pygame.draw.circle(screen,(255,0,0),indicator_pos,10,2)
+        #Text for missiles
+        if ship is not None:
+            ammo_count=ship.get_active_weapon(engine).ammo_count
+            missile_text=self.my_font.render("Missiles: "+"{}".format(ammo_count),True,(255,255,255))
+            screen.blit(missile_text,(10,10))
                 
         

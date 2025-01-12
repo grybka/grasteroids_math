@@ -182,13 +182,14 @@ class TorpedoLauncher(ShipPart):
         self.direction=direction
         self.launch_velocity=launch_velocity
         self.ammunition_instance=ammunition_instance
+        self.ammo_count=10
 
     def fire(self):
         self.firing=True
 
     def update(self, ticks, engine, ship):
         self.time_since_last_shot+=ticks/1000
-        if self.firing==True and self.time_since_last_shot>self.cooldown:
+        if self.firing==True and self.time_since_last_shot>self.cooldown and self.ammo_count>0:
             self.time_since_last_shot=0
             torpedo=self.ammunition_instance()
             torpedo.set_position(ship.body.position+self.attachment.rotated(ship.body.angle))
@@ -197,6 +198,7 @@ class TorpedoLauncher(ShipPart):
             torpedo.desired_direction=Vec2d(0,1).rotated(ship.body.angle)
             torpedo.behavior_tree=TorpedoBehavior(torpedo,engine)
             engine.schedule_add_object(torpedo)
+            self.ammo_count-=1
             self.firing=False
 
 class LaserCannon(ShipPart):
