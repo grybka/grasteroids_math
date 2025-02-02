@@ -11,7 +11,7 @@ from engine.HUD import *
 from behavior_tree.ComplexBehaviors import *
 
 class GameEngine:
-    def __init__(self,clock):
+    def __init__(self):
         self.controller=None
         #display stuff
         self.camera=Camera()
@@ -22,7 +22,7 @@ class GameEngine:
         self.hud=HUD()
         self.hud.camera=self.camera
 
-        self.clock=clock
+#        self.clock=clock
         self.space = pymunk.Space()
         self.space.gravity = Vec2d(0.0, 0.0)
 
@@ -30,6 +30,8 @@ class GameEngine:
         ship_bullet_collision_handler.post_solve=self.bullet_hit
         ship_ship_collision_handler=self.space.add_collision_handler(COLLISION_TYPE_SHIP, COLLISION_TYPE_SHIP)
         ship_ship_collision_handler.post_solve=self.ship_collision
+        ship_collectable_collision_handler=self.space.add_collision_handler(COLLISION_TYPE_SHIP, COLLISION_TYPE_COLLECTABLE)
+        ship_collectable_collision_handler.post_solve=self.ship_collects
 
         self.objects_to_add=[]        
         self.objects =[]
@@ -72,8 +74,10 @@ class GameEngine:
         #self.add_object(ChargedSphere(position=Vec2d(60,200),charge=-1))
         #self.desired_velocity=Vec2d(0,0)
         self.add_decorator(SpriteDecorator())
+        #for i in range(5):
+        #    self.spawn_asteroid()
         for i in range(5):
-            self.spawn_asteroid()
+            self.spawn_collectable()
 
 
     def set_controller(self,controller):
@@ -103,9 +107,18 @@ class GameEngine:
 
         asteroid=Asteroid(offset,velocity,256)
         self.schedule_add_object(asteroid)
+
+    def spawn_collectable(self):
+        offset=Vec2d(random.randrange(-1000,1000),random.randrange(-500,500))
+        velocity=Vec2d(random.randrange(-100,100),random.randrange(-20,20))
+        angvel=random.randrange(-1,1)
+        x=Collectable(offset,velocity,angvel)
+        self.schedule_add_object(x)
+
+
        
-    def schedule_add_object(self,obj):
-        self.objects_to_add.append(obj)
+    def schedule_add_object(self,obj,delay=0):
+        self.objects_to_add.append([obj,delay])
 
     def _add_object(self,obj):
         if isinstance(obj.shape,list):
@@ -138,9 +151,13 @@ class GameEngine:
             obj.update(ticks,self)    
 
         #add new objects
+        leftovers=[]
         for obj in self.objects_to_add:
-            self._add_object(obj) 
-        self.objects_to_add=[]
+            if obj[1]<=0:
+                self._add_object(obj[0]) 
+            else:
+                leftovers.append( [obj[0],obj[1]-1] )
+        self.objects_to_add=leftovers
 
         #update interactions        
         for i in range(len(self.objects)):
@@ -257,6 +274,16 @@ class GameEngine:
         return True
 
         #print("collision ke is",total_ke)
+
+    def ship_collects(self,arbiter,space,data):
+        ship1=self.id_object_map[arbiter.shapes[0].body.id]
+        collected=self.id_object_map[arbiter.shapes[1].body.id] 
+        collected.remove_flag=True
+        ship1.cargo_count+=1
+        return True
+
+
+
 
     def point_query(self,point,max_distance,filter=None):
         if filter is None:

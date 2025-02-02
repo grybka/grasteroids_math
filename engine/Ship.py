@@ -182,9 +182,8 @@ class Torpedo(ControllableShip):
             dx=obj.body.position-self.body.position
             obj.body.apply_impulse_at_world_point( max_force*dx/(dx.length+1),obj.body.position)
         get_sound_store().play_sound("explosion2")
+        
 
         self.remove_flag=True
         ...
-
-
 

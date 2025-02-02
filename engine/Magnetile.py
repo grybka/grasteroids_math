@@ -134,8 +134,8 @@ class Magnetile(GameObject):
         
 
 class SquareMagnetile(Magnetile):
-    def __init__(self,position=Vec2d(0,0),color=None):
-        points=[(-1/2,-1/2),(-1/2,1/2),(1/2,1/2),(1/2,-1/2)]
+    def __init__(self,position=Vec2d(0,0),color=None,scale=1):
+        points=[(-scale/2,-scale/2),(-scale/2,scale/2),(scale/2,scale/2),(scale/2,-scale/2)]
         Magnetile.__init__(self,position,points,color=color)
 
    
@@ -146,9 +146,9 @@ class RectMagnetile(Magnetile):
 
   
 class RightTriangleMagnetile(Magnetile):
-    def __init__(self,position=Vec2d(0,0),color=None):
+    def __init__(self,position=Vec2d(0,0),color=None,scale=1):
         #points=[(-magnetile_scale/2,-magnetile_scale/2),(-magnetile_scale/2,magnetile_scale/2),(magnetile_scale/2,-magnetile_scale/2)]
-        points=[(-1/2,-1/2),(-1/2,1/2),(1/2,-1/2)]
+        points=[(-scale/2,-scale/2),(-scale/2,scale/2),(scale/2,-scale/2)]
         Magnetile.__init__(self,position,points,color)        
 
    
@@ -189,7 +189,7 @@ class MagnetileConstruction(GameObject):
         #generate pymunk shapes
         self.shape = []
         for m in self.magnetiles:
-            print("magnetile position",m.body.position)
+            #print("magnetile position",m.body.position)
             verts=m.get_vertices_worldspace()
             shape = pymunk.Poly(self.body, verts)
             shape.collision_type=COLLISION_TYPE_SHIP
@@ -219,7 +219,7 @@ class MagnetileConstruction(GameObject):
             center+=s.body.local_to_world(s.shape.center_of_gravity)*s.shape.mass            
             total_mass+=s.body.mass
         center/=total_mass
-        print("center of mass is",center)
+        #print("center of mass is",center)
         self.body.position=center
         for s in self.magnetiles:
             s.body.position-=center

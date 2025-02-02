@@ -126,5 +126,11 @@ class HUD:
             ammo_count=ship.get_active_weapon(engine).ammo_count
             missile_text=self.my_font.render("Missiles: "+"{}".format(ammo_count),True,(255,255,255))
             screen.blit(missile_text,(10,10))
+            #Text for cargo
+            cargo_text=self.my_font.render("Cargo: "+"{}".format(ship.get_cargo_count(engine)),True,(255,255,255))
+            screen.blit(cargo_text,(10,40))
+
+
+
                 
         

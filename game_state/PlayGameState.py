@@ -3,47 +3,43 @@ import pygame
 from engine.GameEngine import GameEngine
 from gui.GUI import *
 from pygame_gui.windows.ui_message_window import UIMessageWindow
-from game_state.GameStates import *
+from game_state.GameState import *
+from pygame_gui._constants import UI_WINDOW_CLOSE
+from engine.GameEngine import GameEngine
 
 
-class GameState:
-    def __init__(self,manager,engine):
-        self.is_done=False
-        self.next_state_name=None
 
-    def get_done(self):
-        return self.is_done
-    
-    def get_next_state(self):
-        return self.next_state_name
-    
+
+class PlayGameState(GameState):
+    def __init__(self,state_manager):
+        super().__init__(state_manager)
+        #self.menu_window=UIMessageWindow(pygame.Rect(100, 100, 400, 400), "MainMenu", state_manager.ui_manager)
+        #self.is_done=False
+        self.engine=GameEngine()
+        #self.engine.set_controller(controller)
+
+
     def init_state(self):
-        print("state "+self.__class__.__name__+" initialized")
-        pass
+        super().init_state()
+        self.engine.spawn_player("ship1")
 
-    def finalize_state(self):
-        pass
+        #self.menu_window.show()
 
-    def update(self,ticks):
-        pass
+    def update(self,ticks):       
+        self.engine.update(ticks)
+        #if self.is_done:
+            #self.menu_window.hide()
+            #return True,"PlayGameState"
+        return False,None
+    
+    def draw_state(self,screen):
+        self.engine.draw(screen)
+    
+    def handle_event(self,event):
+        return self.engine.handle_event(event)       
+#        return False
 
-class GameStateManager:
-    def __init__(self):
-        self.state_dictionary={} #name to state
-        self.current_state=None
-
-    def transition_to_state(self,state_name):
-        if self.current_state is not None:
-            self.current_state.finalize_state()
-        self.current_state=self.state_dictionary[state_name]
-        self.current_state.init_state()        
-
-    def update(self,ticks):
-        if self.current_state is not None:
-            self.current_state.update(ticks)
-            if self.current_state.get_done():
-                self.transition_to_state(self.current_state.get_next_state())
-                
+state_dictionary["PlayGameState"]=PlayGameState
 
 class SelectShipState(GameState):
     def __init__(self,manager,engine):        
@@ -94,15 +90,4 @@ class MessageWindowState(GameState):
 
     def get_done(self):
         return not self.message_window.is_enabled
-
-
-
-class PlayGameState(GameState):
-    def __init__(self,manager,engine):
-        super().__init__(manager,engine)
-        #self.game_state = GameState.SINGLE_VS_MULTI        
-        self.engine=engine
-        self.manager=manager
-
-    def update(self,ticks):        
-        self.engine.update(ticks)                   
+                  

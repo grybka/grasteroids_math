@@ -80,6 +80,35 @@ def clamp(x,minimum,maximum):
 def color_blend(color,delta):
     return (clamp(color[0]+delta,0,255),clamp(color[1]+delta,0,255),clamp(color[2]+delta,0,255))
 
+class HighlightedPolygonSprite(DrawableSprite):
+    def __init__(self,vertices,position,angle,color):
+        DrawableSprite.__init__(self,Vec2d(0,0))        
+        self.vertices=vertices
+        self.position=position
+        self.angle=angle
+        self.color=color
+        self.highlight_color=[255,255,255]
+        self.highlight_halo=1.2
+        self.on_time=0
+        self.pulse_frequency=0.01
+
+    def set_angle(self,angle):
+        self.angle=angle
+
+    def set_position(self,position):
+        self.position=position
+
+    def update(self,ticks):
+        self.on_time+=ticks
+
+    def blit(self,screen,camera): 
+        val=255*(math.sin(self.pulse_frequency*self.on_time)**2)
+        self.highlight_color=[val,val,val]    
+        hvertices=[camera.get_screen_position(self.position+self.highlight_halo*v.rotated(self.angle)) for v in self.vertices]
+        vertices=[camera.get_screen_position(self.position+v.rotated(self.angle)) for v in self.vertices]
+        pygame.draw.polygon(screen,self.highlight_color,hvertices)
+        pygame.draw.polygon(screen,self.color,vertices)
+
 
 class MagnetileSprite(DrawableSprite):
     def __init__(self,magnetile):
@@ -250,7 +279,7 @@ class MagnetileConstructionSprite:
         for magnetile in self.construction.magnetiles:
             sprite=MagnetileSprite(magnetile)
             sprite.blit(self.image,empty_camera)
-        print("image width height ",self.image.get_width(),self.image.get_height())    
+        #print("image width height ",self.image.get_width(),self.image.get_height())    
 
     def get_bounds(self):
         image=self.get_image()

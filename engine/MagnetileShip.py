@@ -38,10 +38,14 @@ class MagnetileShip(MagnetileConstruction, ControllableShip):
         self.health=self.max_health
         self.max_shields=10
         self.shields=10
-        self.reactor_breach=False  
+        self.reactor_breach=False
+        self.cargo_count=10  
 
     def get_active_weapon(self,engine):
         return self.missile_launcher  
+    
+    def get_cargo_count(self,engine):
+        return self.cargo_count
         
 
     def update(self,ticks,engine):
@@ -180,6 +184,7 @@ class MagnetileShip(MagnetileConstruction, ControllableShip):
         #what if I added the regular magnetiles, and then a bomb object that would blow them apart?
         
         #this is a magnetile ship so disassosiate the magnetiles
+        """
         for magnetile in self.magnetiles:
             mt=magnetile.my_copy()
             mt.max_lifetime=10 #make them fade away after 10 seconds
@@ -189,8 +194,20 @@ class MagnetileShip(MagnetileConstruction, ControllableShip):
             vel=random.gauss(explosion_velocity,explosion_velocity_stdev)
             angle=random.gauss(0,angle_stdev)
             mt.body.velocity+=(magnetile.body.position.normalized()*vel).rotated(angle)
-
             engine.schedule_add_object(mt)
+        """
+#drop cargo
+        for i in range(self.cargo_count+len(self.magnetiles)):
+            print("dropping cargo")
+            position=self.body.position
+            print("at position {}".format(position))
+            velocity=self.body.velocity+Vec2d(random.gauss(explosion_velocity,explosion_velocity_stdev),random.gauss(explosion_velocity,explosion_velocity_stdev))
+            angvel=random.uniform(-1,1)
+            angle=random.uniform(0,6.2)
+            x=Collectable(position,velocity,angvel,angle=angle)
+            engine.schedule_add_object(x,1)
+
+
         engine.add_decorator(ExplosionDecorator(position=self.body.position,velocity=self.body.velocity))  
         get_sound_store().play_sound("explosion")
         self.is_dead=True
@@ -240,3 +257,51 @@ _ship_factory=ShipFactory()
 
 def get_ship_factory():
     return _ship_factory
+
+
+
+class Collectable(GameObject):
+    def __init__(self,position,velocity,angular_velocity=0,angle=0,size_scale=30,shape_type="right_triangle"):
+        super().__init__(position)
+        #generate vertices
+        self.color=random_magnetile_color()
+        scale=size_scale
+        a=random.randrange(0,6)
+        if a==0:
+            points=(-1/2,-1/2),(-1/2,1/2),(1/2,-1/2)
+        if a==1:
+            points=[(-1/2,-1/2),(-1/2,1/2),(1/2,1/2),(1/2,-1/2)]
+        if a==2:
+            points=[(-1/2,-1),(-1/2,1),(1/2,1),(1/2,-1)]
+        if a==3:
+            points=[(-1/2,-1/2),(-1/2,1/2),(1/2,-1/2)]
+        if a==4:
+            points=[(-1/2,-1/2),(0,math.sqrt(3)/2-1/2),(1/2,-1/2)]
+        if a==5:
+            points=[(-1/2,-1/2),(0,math.sqrt(15)/2-1/2),(1/2,-1/2)]
+
+
+        self.vertices=[ Vec2d(scale*x[0],scale*x[1]) for x in points ]
+
+        #generate pymunk body
+        self.body = pymunk.Body()
+        self.body.position = position
+        self.body.angle=angle
+        self.shape = pymunk.Poly(self.body, self.vertices)
+        self.shape.collision_type=COLLISION_TYPE_COLLECTABLE
+        self.shape.density=magnetile_density
+        self.shape.friction=0.5
+        self.shape.elasticity=0.8
+
+        self.body.velocity=velocity
+        self.body.angular_velocity=angular_velocity
+        self.sprite=HighlightedPolygonSprite(self.vertices,self.body.position,self.body.angle,self.color)
+
+    def update(self,ticks,engine):
+        super().update(ticks,engine)
+        self.sprite.update(ticks)
+
+    def get_sprite(self):
+        self.sprite.set_angle(self.body.angle)
+        self.sprite.set_position(self.body.position)
+        return self.sprite

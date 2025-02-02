@@ -9,6 +9,7 @@ from sprites.SpriteAnimations import get_sprite_animation_store
 
 COLLISION_TYPE_SHIP=1
 COLLISION_TYPE_BULLET=2
+COLLISION_TYPE_COLLECTABLE=3
 
 
 class GameObject:
@@ -301,3 +302,4 @@ class Asteroid(GameObject):
         self.sprite.set_world_position(self.body.position)
         self.sprite.set_angle(self.body.angle)        
         return self.sprite
+    

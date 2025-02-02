@@ -9,6 +9,7 @@ import pygame_gui
 from gui.GUI import *
 from pygame_gui.elements import UIButton
 from game_state.PlayGameState import *
+from game_state.MenuStates import *
 
 
 pygame.init()
@@ -66,16 +67,17 @@ get_ship_factory().load_ship_info("config/ship_info.yaml")
 
 
 #loop through game engine
-engine=GameEngine(clock)
-engine.set_controller(controller)
-manager = pygame_gui.UIManager(resolution)
+#engine=GameEngine(clock)
+#engine.set_controller(controller)
+manager = pygame_gui.UIManager(resolution,theme_path="ui_theme.json")
 
-state_manager=GameStateManager()
-state_manager.state_dictionary[GameStateName.PLAY]=PlayGameState(manager,engine)
-state_manager.state_dictionary[GameStateName.SELECT_SHIP]=SelectShipState(manager,engine)
-state_manager.state_dictionary[GameStateName.SINGLE_VS_MULTI]=SingleVsMultiState(manager,engine)
-state_manager.state_dictionary[GameStateName.NO_CONTROLLERS_MESSAGE]=MessageWindowState(manager,engine,"Not Enough Controllers",GameStateName.SINGLE_VS_MULTI)
-state_manager.transition_to_state(GameStateName.SINGLE_VS_MULTI)
+state_manager=GameStateManager(manager)
+#state_manager.state_dictionary[GameStateName.PLAY]=PlayGameState(manager,engine)
+#state_manager.state_dictionary[GameStateName.SELECT_SHIP]=SelectShipState(manager,engine)
+#state_manager.state_dictionary[GameStateName.SINGLE_VS_MULTI]=SingleVsMultiState(manager,engine)
+#state_manager.state_dictionary[GameStateName.NO_CONTROLLERS_MESSAGE]=MessageWindowState(manager,engine,"Not Enough Controllers",GameStateName.SINGLE_VS_MULTI)
+#state_manager.transition_to_state(GameStateName.SINGLE_VS_MULTI)
+state_manager.transition_to_state("MainMenuState")
 
 
 
@@ -87,7 +89,8 @@ while running:
     #engine.update(time_delta)    
     manager.update(time_delta)        
     
-    engine.draw(screen)    
+#    engine.draw(screen)   
+    state_manager.draw_state(screen) 
     manager.draw_ui(screen)
     
 
@@ -99,4 +102,5 @@ while running:
         if event.type==pygame.QUIT:
             running=False        
         manager.process_events(event)
-        engine.handle_event(event)        
+        state_manager.handle_event(event)
+        #engine.handle_event(event)        

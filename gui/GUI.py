@@ -5,7 +5,7 @@ from pygame_gui.elements.ui_window import UIWindow
 from pygame_gui.elements import UIImage,UIButton,UIPanel,UIScrollingContainer
 from engine.MagnetileShip import get_ship_factory
 from sprites.Sprite import Camera
-from game_state.GameStates import *
+from game_state.GameState import *
 
 class ShipSelectPane(UIPanel):
     def __init__(self, ui_manager: pygame_gui.UIManager,ship_name,engine,container=None,top_offset=0):
