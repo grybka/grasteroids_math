@@ -226,4 +226,17 @@ class LaserCannon(ShipPart):
             #TODO add sound effect here
             #self.firing=False
 
+class TractorBeam(ShipPart):
+    def __init__(self,attachment=Vec2d(0,0)):
+        self.attachment=attachment
+        self.max_distance=100
+        self.force_strength=10000
 
+    def update(self,ticks,engine,ship):
+        objects=engine.point_query(ship.body.position,2*self.max_distance)
+        for object in objects:            
+            if isinstance(object,Collectable):                
+                F=min(1,self.max_distance/(ship.body.position-object.body.position).length)
+                object.body.apply_force_at_world_point(self.force_strength*(ship.body.position-object.body.position).normalized(),object.body.position)
+                ship.body.apply_force_at_world_point(-self.force_strength*(ship.body.position-object.body.position).normalized(),ship.body.position)
+                engine.add_decorator(TractorBeamDecorator(source=ship,target=object))

@@ -67,6 +67,8 @@ class AssemblyLayer:
         self.add_choice(EquilateralTriangleMagnetile())
         self.add_choice(IsocelesTriangleMagnetile())
         self.add_choice(TallRightTriangleMagnetile())
+        self.add_choice(EshapeMagnetile())
+
         ...
         self.dragging_object=None
         ...

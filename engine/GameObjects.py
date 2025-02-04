@@ -32,6 +32,8 @@ class GameObject:
         return None
     
     def update(self,ticks,engine):
+        space_drag=0.999 
+        self.body.velocity=space_drag*self.body.velocity       
         pass
     
     def should_remove(self):
@@ -95,6 +97,7 @@ class Bullet(GameObject):
         return self.sprite
     
     def update(self,ticks,engine):
+        super().update(ticks,engine)
         self.lifetime+=ticks/1000
         self.hit_this_frame=False
 
@@ -203,6 +206,12 @@ class SpriteDecorator(Decorator):
 
     def get_sprite(self):
         return self.sprite
+    
+class Planet(SpriteDecorator):
+    def __init__(self,position=Vec2d(0,0)):        
+        self.image_name=random.sample(["planet1","planet2","planet3","planet4"],1)[0]
+        super().__init__(position,self.image_name)
+
 
 class ThrustDecorator(Decorator):
     def __init__(self,position=Vec2d(0,0),velocity=Vec2d(0,0),max_radius=10,lifetime=0.5,color=(255,0,0)):        
@@ -279,6 +288,23 @@ class ShipSpawnDecorator(Decorator):
         image=self.ship.get_sprite().get_image()
         to_blit=pygame.transform.scale(image,(int(image.get_width()*scale),int(image.get_height()*scale)))
         return ImageSprite(to_blit,self.position)
+    
+class TractorBeamDecorator(Decorator):
+    def __init__(self,source,target):
+        Decorator.__init__(self,Vec2d(0,0))
+        self.source=source
+        self.target=target
+        self.max_lifetime=0.1
+        self.color=(0,255,0)
+        self.sprite=None
+
+    def update(self,ticks,engine):
+        Decorator.update(self,ticks)
+        
+
+    def get_sprite(self):
+        return LineSprite(self.source.body.position,self.target.body.position,self.color)
+
 
 
 class Asteroid(GameObject):
@@ -301,5 +327,62 @@ class Asteroid(GameObject):
     def get_sprite(self):
         self.sprite.set_world_position(self.body.position)
         self.sprite.set_angle(self.body.angle)        
+        return self.sprite
+    
+def random_magnetile_color():
+    return pygame.Color(random.choice(["blue2","firebrick2","gold","darkolivegreen4","darkorchid4"]))
+
+class Collectable(GameObject):
+    def __init__(self,position,velocity,angular_velocity=0,angle=0,size_scale=30,shape_type="right_triangle"):
+        super().__init__(position)
+        magnetile_density=0.05
+        #generate vertices
+        self.color=random_magnetile_color()
+        scale=size_scale
+        a=random.randrange(0,6)
+        if a==0:
+            points=(-1/2,-1/2),(-1/2,1/2),(1/2,-1/2)
+        if a==1:
+            points=[(-1/2,-1/2),(-1/2,1/2),(1/2,1/2),(1/2,-1/2)]
+        if a==2:
+            points=[(-1/2,-1),(-1/2,1),(1/2,1),(1/2,-1)]
+        if a==3:
+            points=[(-1/2,-1/2),(-1/2,1/2),(1/2,-1/2)]
+        if a==4:
+            points=[(-1/2,-1/2),(0,math.sqrt(3)/2-1/2),(1/2,-1/2)]
+        if a==5:
+            points=[(-1/2,-1/2),(0,math.sqrt(15)/2-1/2),(1/2,-1/2)]
+
+
+        self.vertices=[ Vec2d(scale*x[0],scale*x[1]) for x in points ]
+
+        #generate pymunk body
+        self.body = pymunk.Body()
+        self.body.position = position
+        self.body.angle=angle
+        self.shape = pymunk.Poly(self.body, self.vertices)
+        self.shape.collision_type=COLLISION_TYPE_COLLECTABLE
+        self.shape.density=magnetile_density
+        self.shape.friction=0.5
+        self.shape.elasticity=0.8
+
+        self.body.velocity=velocity
+        self.body.angular_velocity=angular_velocity
+        self.sprite=HighlightedPolygonSprite(self.vertices,self.body.position,self.body.angle,self.color)
+        self.lifetime=0
+        self.max_lifetime=60    
+
+    def update(self,ticks,engine):
+        super().update(ticks,engine)
+        self.sprite.update(ticks)
+        self.body.velocity=0.99*self.body.velocity
+        self.lifetime+=ticks/1000        
+        if self.lifetime>self.max_lifetime:
+            self.remove_flag=True
+
+
+    def get_sprite(self):
+        self.sprite.set_angle(self.body.angle)
+        self.sprite.set_position(self.body.position)
         return self.sprite
     

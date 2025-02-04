@@ -169,6 +169,15 @@ class TallRightTriangleMagnetile(Magnetile):
         points=[(-1/2,-1/2),(-1/2,3/2),(1/2,-1/2)]
         Magnetile.__init__(self,position,points,color)
 
+
+#
+#       O O O
+#       OOOOO
+class EshapeMagnetile(Magnetile):
+    def __init__(self,position=Vec2d(0,0),color=None):
+        points=[(-1/2,0),(-1/2,1/2),(-3/10,1/2),(-3/10,2/10),(-1/10,2/10),(-1/10,1/2),(1/10,1/2),(1/10,2/10),(3/10,2/10),(3/10,1/2),(1/2,1/2),(1/2,0)]
+        Magnetile.__init__(self,position,points,color)
+
    
 class MagnetileConstruction(GameObject):
     def __init__(self,magnetiles=[],re_center=False,shape_fname=None):

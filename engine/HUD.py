@@ -21,6 +21,8 @@ class HUD:
         self.move_target=None
         self.my_font=pygame.font.Font(None,36)
 
+        self.message=None
+
     def load_assets(self):
         self.crosshairs_image=get_sprite_store().get_sprite("crosshairs1",scale=1.0)
         self.move_target_image=get_sprite_store().get_sprite("crosshairs2",scale=1.0)
@@ -99,15 +101,16 @@ class HUD:
             self.load_assets()
             self.loaded=True
         #Draw crosshairs
-        crosshairs_distance=self.crosshairs_distance_px/camera.zoom
-        pointing_vector=Vec2d(0,1).rotated(ship.body.angle)
-        self.crosshairs_sprite=ImageSprite(self.crosshairs_image,ship.body.position+crosshairs_distance*pointing_vector)
-        self.crosshairs_sprite.blit(screen,camera)
-        #Draw desired angle
-        indicator_length=self.indicator_length_px/camera.zoom
-        indicator_start=ship.desired_direction*(crosshairs_distance-0.5*indicator_length)+ship.body.position
-        indicator_stop=ship.desired_direction*(crosshairs_distance+0.5*indicator_length)+ship.body.position
-        pygame.draw.line(screen,(255,255,255),camera.get_screen_position(indicator_start),camera.get_screen_position(indicator_stop),2)
+        if ship is not None:
+            crosshairs_distance=self.crosshairs_distance_px/camera.zoom
+            pointing_vector=Vec2d(0,1).rotated(ship.body.angle)
+            self.crosshairs_sprite=ImageSprite(self.crosshairs_image,ship.body.position+crosshairs_distance*pointing_vector)
+            self.crosshairs_sprite.blit(screen,camera)
+            #Draw desired angle
+            indicator_length=self.indicator_length_px/camera.zoom
+            indicator_start=ship.desired_direction*(crosshairs_distance-0.5*indicator_length)+ship.body.position
+            indicator_stop=ship.desired_direction*(crosshairs_distance+0.5*indicator_length)+ship.body.position
+            pygame.draw.line(screen,(255,255,255),camera.get_screen_position(indicator_start),camera.get_screen_position(indicator_stop),2)
         #Draw move target
         if self.move_target is not None:
             self.move_target_sprite=ImageSprite(self.move_target_image,self.move_target)
@@ -129,7 +132,10 @@ class HUD:
             #Text for cargo
             cargo_text=self.my_font.render("Cargo: "+"{}".format(ship.get_cargo_count(engine)),True,(255,255,255))
             screen.blit(cargo_text,(10,40))
-
+        #Text for message
+        if self.message is not None:
+            message_text=self.my_font.render(self.message,True,(255,255,255))            
+            screen.blit(message_text,(screen.get_size()[0]/2-message_text.get_size()[0]/2,screen.get_size()[1]/3))
 
 
                 

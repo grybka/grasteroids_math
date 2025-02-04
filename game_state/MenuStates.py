@@ -35,17 +35,15 @@ class MainMenuState(GameState):
 state_dictionary["MainMenuState"]=MainMenuState
 
 class GameOverState(GameState):
-       def __init__(self,state_manager):
+    def __init__(self,state_manager):
         super().__init__(state_manager)
         self.menu_window=GameOverWindow(state_manager.ui_manager,state_manager)
         self.is_done=False
-
     def init_state(self):
         super().init_state()
         self.menu_window.show()
 
     def update(self,ticks):        
-#        if self.is_done:
         if self.menu_window.start_game:
             self.menu_window.hide()
             return True,"MainMenuState"

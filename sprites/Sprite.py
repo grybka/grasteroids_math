@@ -126,6 +126,7 @@ class MagnetileSprite(DrawableSprite):
     def blit(self,screen,camera):        
         vertices=[camera.get_screen_position(self.magnetile.body.position+v.rotated(self.magnetile.body.angle)) for v in self.magnetile.vertices]
         pygame.draw.polygon(screen,self.magnetile.color,vertices)        
+        """
         for magnet in self.magnetile.magnets:
             inset=3
             radius=3*camera.zoom
@@ -135,6 +136,7 @@ class MagnetileSprite(DrawableSprite):
                 pygame.draw.circle(screen,color_blend(self.magnetile.color,-20),position,radius)
             else:
                 pygame.draw.circle(screen,color_blend(self.magnetile.color,20),position,radius)
+        """
 
 
 class CircleSprite(DrawableSprite):
@@ -155,7 +157,20 @@ class CircleSprite(DrawableSprite):
     
     def blit(self,screen,camera):
         pos=camera.get_screen_position(self.world_position)
-        pygame.draw.circle(screen,self.color,pos,max(self.radius*camera.zoom,1))        
+        pygame.draw.circle(screen,self.color,pos,max(self.radius*camera.zoom,1))     
+
+class LineSprite(DrawableSprite):
+    def __init__(self,start,end,color=(255,255,255)):
+        DrawableSprite.__init__(self,Vec2d(0,0))        
+        self.start=start
+        self.end=end
+        self.color=color
+
+    def blit(self,screen,camera):
+        start=camera.get_screen_position(self.start)
+        end=camera.get_screen_position(self.end)
+        pygame.draw.line(screen,self.color,start,end)
+
 
 class ImageSprite(DrawableSprite):
     def __init__(self,image,world_position=Vec2d(0,0),angle=0):

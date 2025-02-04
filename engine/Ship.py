@@ -89,6 +89,7 @@ class Torpedo(ControllableShip):
         self.ship_parts.append(self.thruster)
         self.reaction_wheel=ReactionWheel(max_torque=moment*8)
         self.ship_parts.append(self.reaction_wheel)
+        
         self.reactor_breach=False
         self.lifetime=0
         self.max_lifetime=20

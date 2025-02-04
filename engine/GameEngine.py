@@ -55,6 +55,8 @@ class GameEngine:
         #torpedo.behavior_tree=InterceptShip(npc=torpedo,ship=self.my_ship)
         #self.schedule_add_object(torpedo)
         self.other_ship=None
+        self.new_enemy_countdown=5000
+        self.respawn_player_countdown=5000
 
         #self.respawn_enemy()
         #self.other_ship=get_ship_factory().get_ship("ship2")        
@@ -73,7 +75,8 @@ class GameEngine:
         #self.add_object(ChargedSphere(position=Vec2d(0,200),charge=1))
         #self.add_object(ChargedSphere(position=Vec2d(60,200),charge=-1))
         #self.desired_velocity=Vec2d(0,0)
-        self.add_decorator(SpriteDecorator())
+        #self.add_decorator(SpriteDecorator())
+        self.add_decorator(Planet())
         #for i in range(5):
         #    self.spawn_asteroid()
         for i in range(5):
@@ -134,11 +137,24 @@ class GameEngine:
     def update(self,ticks):                
         if self.my_ship is not None:
             if self.my_ship not in self.objects and self.my_ship.is_dead:
-                self.my_ship=None        
+                self.my_ship=None  
+        else:
+            self.respawn_player_countdown-=ticks
+            self.hud.message="Respawning in "+str(int(self.respawn_player_countdown/1000))+" seconds"            
+            if self.respawn_player_countdown<=0:
+                self.respawn_player_countdown=5000
+                self.spawn_player("ship1")
+                self.hud.message=None                  
 
         if self.other_ship is None or (self.other_ship not in self.objects and self.other_ship.is_dead):
-            ...
-            self.respawn_enemy()
+            if True:                    
+                if self.new_enemy_countdown>0:
+                    self.new_enemy_countdown-=ticks
+                    self.hud.message="New enemy in "+str(int(self.new_enemy_countdown/1000))+" seconds"                
+                else:
+                    self.respawn_enemy()
+                    self.new_enemy_countdown=5000
+                    self.hud.message=None
         
         self.hud.update(ticks,self.my_ship)
 
@@ -236,8 +252,8 @@ class GameEngine:
         for obj in self.decorators: 
             if obj.top_layer:
                 obj.get_sprite().blit(screen,self.camera)   
-        if self.my_ship is not None: 
-            self.hud.draw(self.camera,screen,self,self.my_ship)          
+        #if self.my_ship is not None: 
+        self.hud.draw(self.camera,screen,self,self.my_ship)          
         
         
     def handle_event(self,event):
@@ -276,6 +292,8 @@ class GameEngine:
         #print("collision ke is",total_ke)
 
     def ship_collects(self,arbiter,space,data):
+        #if not isinstance(arbiter.shapes[0].body,ControllableShip):
+        #    return True
         ship1=self.id_object_map[arbiter.shapes[0].body.id]
         collected=self.id_object_map[arbiter.shapes[1].body.id] 
         collected.remove_flag=True

@@ -23,6 +23,7 @@ class MagnetileShip(MagnetileConstruction, ControllableShip):
         self.ship_parts.append(self.cannon)
         self.missile_launcher=TorpedoLauncher(attachment=Vec2d(0,bbox[3]+10),ammunition_instance=Torpedo)
         self.ship_parts.append(self.missile_launcher)
+        self.ship_parts.append(TractorBeam(attachment=Vec2d(0,0)))
         #self.cannon=LaserCannon(attachment=Vec2d(0,bbox[3]))
         #self.ship_parts.append(self.cannon)
         #navigation
@@ -258,50 +259,3 @@ _ship_factory=ShipFactory()
 def get_ship_factory():
     return _ship_factory
 
-
-
-class Collectable(GameObject):
-    def __init__(self,position,velocity,angular_velocity=0,angle=0,size_scale=30,shape_type="right_triangle"):
-        super().__init__(position)
-        #generate vertices
-        self.color=random_magnetile_color()
-        scale=size_scale
-        a=random.randrange(0,6)
-        if a==0:
-            points=(-1/2,-1/2),(-1/2,1/2),(1/2,-1/2)
-        if a==1:
-            points=[(-1/2,-1/2),(-1/2,1/2),(1/2,1/2),(1/2,-1/2)]
-        if a==2:
-            points=[(-1/2,-1),(-1/2,1),(1/2,1),(1/2,-1)]
-        if a==3:
-            points=[(-1/2,-1/2),(-1/2,1/2),(1/2,-1/2)]
-        if a==4:
-            points=[(-1/2,-1/2),(0,math.sqrt(3)/2-1/2),(1/2,-1/2)]
-        if a==5:
-            points=[(-1/2,-1/2),(0,math.sqrt(15)/2-1/2),(1/2,-1/2)]
-
-
-        self.vertices=[ Vec2d(scale*x[0],scale*x[1]) for x in points ]
-
-        #generate pymunk body
-        self.body = pymunk.Body()
-        self.body.position = position
-        self.body.angle=angle
-        self.shape = pymunk.Poly(self.body, self.vertices)
-        self.shape.collision_type=COLLISION_TYPE_COLLECTABLE
-        self.shape.density=magnetile_density
-        self.shape.friction=0.5
-        self.shape.elasticity=0.8
-
-        self.body.velocity=velocity
-        self.body.angular_velocity=angular_velocity
-        self.sprite=HighlightedPolygonSprite(self.vertices,self.body.position,self.body.angle,self.color)
-
-    def update(self,ticks,engine):
-        super().update(ticks,engine)
-        self.sprite.update(ticks)
-
-    def get_sprite(self):
-        self.sprite.set_angle(self.body.angle)
-        self.sprite.set_position(self.body.position)
-        return self.sprite

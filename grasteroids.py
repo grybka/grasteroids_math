@@ -25,7 +25,7 @@ if jcount==0:
 else:    
     print("Joysticks found: "+str(jcount))
     controller = pygame.joystick.Joystick(0)
-    controller.init()
+    #controller.init()
     axes = controller.get_numaxes()
     print("number of axes found: "+str(axes)) 
   
