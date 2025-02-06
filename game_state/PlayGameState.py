@@ -21,9 +21,10 @@ class PlayGameState(GameState):
 
     def init_state(self):
         super().init_state()
-        controller = pygame.joystick.Joystick(0)
-        self.engine.set_controller(controller)
-        self.engine.spawn_player("ship1")
+        if self.state_manager.persistent_data["game_mode"]=="single":
+            controller = pygame.joystick.Joystick(0)
+            self.engine.set_controller(controller)
+            self.engine.spawn_player("ship1")
 
         #self.menu_window.show()
 
