@@ -285,7 +285,11 @@ class ShipSpawnDecorator(Decorator):
     def get_sprite(self):
         #scale=1-self.lifetime/self.max_lifetime
         scale=self.lifetime/self.max_lifetime
-        image=self.ship.get_sprite().get_image()
+        sprite=self.ship.get_sprite()
+        if isinstance(sprite,CompoundSprite):
+            image=sprite.sprites[0].get_image()
+        else:
+            image=sprite.get_image()
         to_blit=pygame.transform.scale(image,(int(image.get_width()*scale),int(image.get_height()*scale)))
         return ImageSprite(to_blit,self.position)
     

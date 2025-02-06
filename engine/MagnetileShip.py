@@ -213,14 +213,20 @@ class MagnetileShip(MagnetileConstruction, ControllableShip):
         get_sound_store().play_sound("explosion")
         self.is_dead=True
 
-    def get_sprite(self):
-        if self.health==self.max_health and self.shields==self.max_shields:
-            #don't show health bar for full health
-            #TODO move this to the HUD
-            return MagnetileConstruction.get_sprite(self)
+    def get_sprite(self):                    
         ship_sprite=MagnetileConstruction.get_sprite(self)
-        healthbar=HealthBar(self)
-        return CompoundSprite([ship_sprite,healthbar])        
+        healthbar=HealthBar(self)        
+        part_sprites=[]
+        for part in self.ship_parts:
+            sprite=part.get_sprite(self)
+            if sprite is not None:
+                part_sprites.append(sprite)            
+        if self.health==self.max_health and self.shields==self.max_shields:
+            return CompoundSprite([ship_sprite]+part_sprites)
+        else:
+            return CompoundSprite([ship_sprite,healthbar]+part_sprites)
+        #return CompoundSprite([ship_sprite,healthbar])        
+        #return CompoundSprite([self.sprite,healthbar]+part_sprites)        
 
     def set_firing(self,firing,weapon=0):
         if firing:

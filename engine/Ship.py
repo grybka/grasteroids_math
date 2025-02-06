@@ -109,6 +109,7 @@ class Torpedo(ControllableShip):
         #return CompoundSprite([CircleSprite(10,(0,255,255),world_position=self.body.position+10*ns_dir),CircleSprite(10,(255,0,255),world_position=self.body.position-10*ns_dir)])
         self.sprite.set_world_position(self.body.position)
         self.sprite.set_angle(self.body.angle)
+        
         return self.sprite
 
     def do_damage(self,damage):

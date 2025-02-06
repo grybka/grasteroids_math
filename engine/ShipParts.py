@@ -14,6 +14,9 @@ class ShipPart:
     def update(self,ticks,engine,ship):
         pass
 
+    def get_sprite(self,ship):
+        return None
+
 class Thruster(ShipPart):
     def __init__(self,**kwargs):
         defaultKwargs={"max_force":100,"attachment":Vec2d(0,0),"direction":Vec2d(0,1),"thrust_color":(255,255,0),"thrust_particle_size":10,"thrust_particle_speed":100,"thrust_particle_period":0.1}
@@ -136,6 +139,7 @@ class ManeuverThruster(ShipPart):
     def get_max_acceleration(self,ship):
         return max(self.thruster_1.get_max_acceleration(ship),self.thruster_2.get_max_acceleration(ship),self.thruster_3.get_max_acceleration(ship),self.thruster_4.get_max_acceleration(ship))
 
+    
 
 
 class Cannon(ShipPart):
@@ -172,6 +176,11 @@ class Cannon(ShipPart):
             #make_space_explosion(engine,object.position,particle_count=100,particle_lifetime=1,mean_particle_speed=100,particle_speed_sigma=10,particle_radius=2,particle_color=(255,255,255),explosion_velocity=object.velocity+self.direction.rotated_by(object.rotation)*self.projectile_speed)
             #TODO add sound effect here
             self.firing=False
+
+    def get_sprite(self,ship):        
+        ret=CircleSprite(5,(255,0,0))        
+        ret.set_world_position(ship.body.position+self.attachment.rotated(ship.body.angle))
+        return ret
 
 class TorpedoLauncher(ShipPart):
     def __init__(self,attachment=Vec2d(0,0),cooldown=1,launch_velocity=200,direction=Vec2d(0,1),ammunition_instance=None):
@@ -240,3 +249,19 @@ class TractorBeam(ShipPart):
                 object.body.apply_force_at_world_point(self.force_strength*(ship.body.position-object.body.position).normalized(),object.body.position)
                 ship.body.apply_force_at_world_point(-self.force_strength*(ship.body.position-object.body.position).normalized(),ship.body.position)
                 engine.add_decorator(TractorBeamDecorator(source=ship,target=object))
+
+class Turret(ShipPart):
+    def __init__(self,attachment=Vec2d(0,0)):
+        self.attachment=attachment
+
+    def update(self,ticks,engine,ship):
+        pass
+
+    def draw(self,screen,ship,camera):
+        #location=camera.get_screen_position(ship.body.position+self.attachment.rotated(ship.body.angle))
+        #pygame.draw.circle(screen,(255,0,0),location,5)
+
+        pass
+
+    def get_sprite(self,ship):
+        return None
