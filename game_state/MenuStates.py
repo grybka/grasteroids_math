@@ -19,8 +19,16 @@ class MainMenuState(GameState):
 
     def update(self,ticks):        
 #        if self.is_done:
-        if self.menu_window.start_game:
+        if self.menu_window.selection==TitleMenuWindowSelection.SINGLE_PLAYER:
             self.menu_window.hide()
+            self.state_manager.persistent_data["game_mode"]="single"
+            print("start single player game")
+            return True,"PlayGameState"
+        if self.menu_window.selection==TitleMenuWindowSelection.OBSERVER:
+            self.menu_window.hide()
+            print("start observer mode")
+            self.state_manager.persistent_data["game_mode"]="observer"
+
             return True,"PlayGameState"
         return False,None
     
