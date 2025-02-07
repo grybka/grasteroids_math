@@ -191,7 +191,7 @@ class TorpedoLauncher(ShipPart):
         self.direction=direction
         self.launch_velocity=launch_velocity
         self.ammunition_instance=ammunition_instance
-        self.ammo_count=10
+        self.ammo_count=2
 
     def fire(self):
         self.firing=True

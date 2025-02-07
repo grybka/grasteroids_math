@@ -40,7 +40,7 @@ class MagnetileShip(MagnetileConstruction, ControllableShip):
         self.max_shields=10
         self.shields=10
         self.reactor_breach=False
-        self.cargo_count=10  
+        self.cargo_count=0 
 
     def get_active_weapon(self,engine):
         return self.missile_launcher  

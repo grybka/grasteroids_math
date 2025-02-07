@@ -292,12 +292,16 @@ class GameEngine:
         #print("collision ke is",total_ke)
 
     def ship_collects(self,arbiter,space,data):
-        #if not isinstance(arbiter.shapes[0].body,ControllableShip):
-        #    return True
+        
         ship1=self.id_object_map[arbiter.shapes[0].body.id]
+        if not isinstance(ship1,MagnetileShip):
+            return True
         collected=self.id_object_map[arbiter.shapes[1].body.id] 
         collected.remove_flag=True
         ship1.cargo_count+=1
+        if ship1.cargo_count>=2:
+            ship1.get_active_weapon(None).ammo_count+=1
+            ship1.cargo_count-=2
         return True
 
 
