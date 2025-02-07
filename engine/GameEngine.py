@@ -317,3 +317,15 @@ class GameEngine:
             if object not in ret:
                 ret.append(object)
         return ret
+    
+    #helper functions
+    def get_objects_in_cone(self,position,angle,angle_range,max_distance,filter=None):
+        objects=self.point_query(position,max_distance,filter)
+        objects_in_view_cone=[]
+        for object in objects:
+            dx=object.body.position-position
+            angle_to_object=dx.angle-math.pi/2
+            delta_angle=angle_subtract(angle_to_object,angle)
+            if abs(delta_angle)<angle_range and object!=self.my_ship:
+                objects_in_view_cone.append(object)        
+        return objects_in_view_cone

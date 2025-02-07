@@ -1,8 +1,10 @@
 from pymunk import Vec2d
 from sprites.Sprite import *
+from sprites.PartSprites import *
 from engine.GameObjects import *
 from engine.Sound import *
 from behavior_tree.ComplexBehaviors import *
+from behavior_tree.TurretBehavior import *
 
 class ShipPart:
     def __init__(self,attachement=Vec2d(0,0)):
@@ -177,10 +179,7 @@ class Cannon(ShipPart):
             #TODO add sound effect here
             self.firing=False
 
-    def get_sprite(self,ship):        
-        ret=CircleSprite(5,(255,0,0))        
-        ret.set_world_position(ship.body.position+self.attachment.rotated(ship.body.angle))
-        return ret
+    
 
 class TorpedoLauncher(ShipPart):
     def __init__(self,attachment=Vec2d(0,0),cooldown=1,launch_velocity=200,direction=Vec2d(0,1),ammunition_instance=None):
@@ -253,15 +252,32 @@ class TractorBeam(ShipPart):
 class Turret(ShipPart):
     def __init__(self,attachment=Vec2d(0,0)):
         self.attachment=attachment
+        self.max_angle=math.pi*3/4
+        self.min_angle=-math.pi*3/4
+        self.angle=0.5*(self.max_angle+self.min_angle)
+        self.weapon=Cannon(attachment=Vec2d(0,0),cooldown=0.2,projectile_speed=1600,direction=Vec2d(0,1))   
+        self.behavior=None
+        
 
     def update(self,ticks,engine,ship):
-        pass
-
-    def draw(self,screen,ship,camera):
-        #location=camera.get_screen_position(ship.body.position+self.attachment.rotated(ship.body.angle))
-        #pygame.draw.circle(screen,(255,0,0),location,5)
-
-        pass
-
-    def get_sprite(self,ship):
-        return None
+        #if self.behavior==None:
+        #    self.behavior=TurretBehaviorScan(self,None)     
+        #self.behavior.execute()
+        #self.angle+=ticks*0.001        
+        #self.fire_weapon(ship)
+        #if self.weapon!=None:
+        #    self.weapon.update(ticks,engine,ship)
+        pass  
+    
+    def get_sprite(self,ship):        
+        #ret=CircleSprite(20,(100,100,100))        
+        ret=TurretSprite(self)
+        ret.set_world_position(ship.body.position+self.attachment.rotated(ship.body.angle))
+        ret.ship_angle=ship.body.angle
+        return ret
+    
+    def fire_weapon(self,ship):
+        if self.weapon!=None:
+            self.weapon.direction=Vec2d(1,0).rotated(-self.angle)
+            self.weapon.attachment=self.attachment.rotated(ship.body.angle)
+            self.weapon.fire()

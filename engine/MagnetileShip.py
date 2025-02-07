@@ -24,6 +24,7 @@ class MagnetileShip(MagnetileConstruction, ControllableShip):
         self.missile_launcher=TorpedoLauncher(attachment=Vec2d(0,bbox[3]+10),ammunition_instance=Torpedo)
         self.ship_parts.append(self.missile_launcher)
         self.ship_parts.append(TractorBeam(attachment=Vec2d(0,0)))
+        self.ship_parts.append(Turret(attachment=Vec2d(0,bbox[1])))
         #self.cannon=LaserCannon(attachment=Vec2d(0,bbox[3]))
         #self.ship_parts.append(self.cannon)
         #navigation
