@@ -308,6 +308,7 @@ class GameEngine:
 
 
     def point_query(self,point,max_distance,filter=None):
+        #TODO Implement filter correctly
         if filter is None:
             filter=pymunk.ShapeFilter()
         bodies=self.space.point_query(point,max_distance,filter)

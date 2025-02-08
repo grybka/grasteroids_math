@@ -25,7 +25,8 @@ class Camera:
         return Vec2d(vec[0],self.height-vec[1])
     
     
-
+    def get_screen_angle(self,angle):
+        return -angle
 
     def get_screen_position(self,world_position):        
         x=(world_position-self.position)*self.zoom+self.screen_center         
@@ -353,3 +354,15 @@ class HealthBar(DrawableSprite):
         pygame.draw.rect(screen,self.color_bar_background,(pos[0],pos[1]+offset,self.width,self.bar_height))
         pygame.draw.rect(screen,self.color_shields,(pos[0],pos[1]+offset,round(shields*self.width/max_shields),self.bar_height))
         
+class ViewConeSprite(DrawableSprite):
+    def __init__(self,world_position,angle,angle_range,radius):
+        DrawableSprite.__init__(self,world_position)
+        self.angle=angle
+        self.angle_range=angle_range
+        self.radius=radius
+        self.color=(255,255,255)
+    
+    def blit(self,screen,camera):
+        pos=camera.get_screen_position(self.world_position)
+        my_rect=(pos[0]-self.radius,pos[1]-self.radius,2*self.radius,2*self.radius)
+        pygame.draw.arc(screen,self.color,my_rect,screen.get_screen_angle(self.angle-self.angle_range),screen.get_screen_angle(self.angle+self.angle_range),1)
