@@ -55,7 +55,7 @@ class GameEngine:
         #torpedo.behavior_tree=InterceptShip(npc=torpedo,ship=self.my_ship)
         #self.schedule_add_object(torpedo)
         self.other_ship=None
-        self.new_enemy_countdown=5000
+        self.new_enemy_countdown=5000000
         self.respawn_player_countdown=5000
 
         #self.respawn_enemy()
@@ -79,7 +79,7 @@ class GameEngine:
         self.add_decorator(Planet())
         #for i in range(5):
         #    self.spawn_asteroid()
-        for i in range(5):
+        for i in range(1):
             self.spawn_collectable()
 
 
@@ -88,7 +88,8 @@ class GameEngine:
         self.hud.set_controller(controller)
 
     def spawn_player(self,ship_name):
-        self.my_ship=get_ship_factory().get_ship(ship_name)        
+        self.my_ship=get_ship_factory().get_ship(ship_name)   
+        self.my_ship.is_player=True     
         #self.schedule_add_object(self.my_ship)        
         self.add_decorator(ShipSpawnDecorator(position=Vec2d(0,0),ship=self.my_ship))
 
@@ -209,6 +210,15 @@ class GameEngine:
 
         if self.my_ship is None:
             return
+        
+        #DEBUG TEST VIEW CONE
+        #objs=self.get_objects_in_cone(self.my_ship.body.position,self.my_ship.body.angle,math.pi/4,1000,filter=None)
+        #if len(objs)>0:
+        #    print("my angle {}".format(self.my_ship.body.angle))
+        #    print("my position {}".format(self.my_ship.body.position))
+        #    print("{} objects in view cone".format(len(objs)))
+        #    print("{}".format(objs[0]))
+
         
         self.report_timer+=ticks
         if self.report_timer>self.report_interval:               

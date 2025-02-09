@@ -24,7 +24,8 @@ class MagnetileShip(MagnetileConstruction, ControllableShip):
         self.missile_launcher=TorpedoLauncher(attachment=Vec2d(0,bbox[3]+10),ammunition_instance=Torpedo)
         self.ship_parts.append(self.missile_launcher)
         self.ship_parts.append(TractorBeam(attachment=Vec2d(0,0)))
-        self.ship_parts.append(Turret(attachment=Vec2d(0,bbox[1])))
+        #self.ship_parts.append(Turret(self,attachment=Vec2d(0,bbox[1])))
+        self.ship_parts.append(Turret(self,attachment=Vec2d(0,bbox[3]),attachment_angle=0))
         #self.cannon=LaserCannon(attachment=Vec2d(0,bbox[3]))
         #self.ship_parts.append(self.cannon)
         #navigation
@@ -36,6 +37,7 @@ class MagnetileShip(MagnetileConstruction, ControllableShip):
         
 
         #game stats
+        self.is_player=False
         self.max_health=5*num_magnetiles
         self.health=self.max_health
         self.max_shields=10
@@ -222,6 +224,8 @@ class MagnetileShip(MagnetileConstruction, ControllableShip):
             sprite=part.get_sprite(self)
             if sprite is not None:
                 part_sprites.append(sprite)            
+        
+        #viewcone=[ViewConeSprite(self.body.position,self.body.angle,math.pi/4,100)]
         if self.health==self.max_health and self.shields==self.max_shields:
             return CompoundSprite([ship_sprite]+part_sprites)
         else:
@@ -251,10 +255,10 @@ class ShipFactory:
         ret=MagnetileShip(shape_fname=info["tile_arrangement"])
         ret.maneuver_thruster.set_max_force(info["maneuver_acceleration"]*ret.get_mass())
         ret.thruster.set_max_force(info["thruster_acceleration"]*ret.get_mass())
-        print("rotational acceleration is",info["rotational_acceleration"])
+        #print("rotational acceleration is",info["rotational_acceleration"])
         ret.reaction_wheel.max_torque=info["rotational_acceleration"]*ret.get_moment()
         ret.reaction_wheel.max_angular_velocity=info["max_rotational_speed"]        
-        print("max torque is",ret.reaction_wheel.max_torque)
+        #print("max torque is",ret.reaction_wheel.max_torque)
         ret.shield_recharge_rate=info["shield_recharge_rate"]
         return ret
         

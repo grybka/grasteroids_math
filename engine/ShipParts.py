@@ -7,8 +7,9 @@ from behavior_tree.ComplexBehaviors import *
 from behavior_tree.TurretBehavior import *
 
 class ShipPart:
-    def __init__(self,attachement=Vec2d(0,0)):
+    def __init__(self,attachement=Vec2d(0,0),ship=None):        
         self.attachment=attachement
+        self.ship=ship
 
     def get_attachment(self):
         return self.attachment
@@ -250,23 +251,53 @@ class TractorBeam(ShipPart):
                 engine.add_decorator(TractorBeamDecorator(source=ship,target=object))
 
 class Turret(ShipPart):
-    def __init__(self,attachment=Vec2d(0,0)):
-        self.attachment=attachment
-        self.max_angle=math.pi*3/4
-        self.min_angle=-math.pi*3/4
-        self.angle=0.5*(self.max_angle+self.min_angle)
+    def __init__(self,ship,attachment=Vec2d(0,0),attachment_angle=0):
+        super().__init__(attachment,ship)
+        #self.max_angle=-math.pi*3/4
+        self.max_angle=math.pi/4
+        self.min_angle=-math.pi/4
+        self.attachment_angle=attachment_angle
+        self.angle=self.attachment_angle
+        #TODO handle straight down
         self.weapon=Cannon(attachment=Vec2d(0,0),cooldown=0.2,projectile_speed=1600,direction=Vec2d(0,1))   
         self.behavior=None
+
+    def get_position(self):
+        return self.ship.body.position+self.attachment.rotated(self.ship.body.angle)
+    
+    def get_world_angle(self):
+        return self.ship.body.angle+self.attachment_angle+self.angle
+
+    def get_world_mount_angle(self):
+        return self.ship.body.angle+self.attachment_angle
+    
+    def angle_to_world_angle(self,angle):
+        return angle-self.ship.body.angle-self.attachment_angle
+    
+    def set_angle_to_world_angle(self,angle):
+        target_angle=self.angle_to_world_angle(angle)
+        if target_angle>math.pi:
+            target_angle-=2*math.pi        
+        if target_angle<0:
+            if target_angle<self.min_angle:
+                target_angle=self.min_angle
+        else:
+            if target_angle>self.max_angle:
+                target_angle=self.max_angle
+        
+        #print("target angle ",target_angle)
+        self.angle=target_angle
         
 
     def update(self,ticks,engine,ship):
-        #if self.behavior==None:
-        #    self.behavior=TurretBehaviorScan(self,None)     
-        #self.behavior.execute()
+        if self.behavior==None:
+            #self.behavior=TurretBehaviorScan(self,None)     
+            self.behavior=DefaultTurretBehavior(self,engine,{})
+        self.behavior.execute()
         #self.angle+=ticks*0.001        
         #self.fire_weapon(ship)
-        #if self.weapon!=None:
-        #    self.weapon.update(ticks,engine,ship)
+        if self.weapon!=None:
+            self.weapon.update(ticks,engine,ship)
         pass  
     
     def get_sprite(self,ship):        
@@ -276,8 +307,9 @@ class Turret(ShipPart):
         ret.ship_angle=ship.body.angle
         return ret
     
-    def fire_weapon(self,ship):
+    def fire_weapon(self):
         if self.weapon!=None:
-            self.weapon.direction=Vec2d(1,0).rotated(-self.angle)
-            self.weapon.attachment=self.attachment.rotated(ship.body.angle)
+            self.weapon.direction=Vec2d(0,1).rotated(self.get_world_angle())
+            self.weapon.attachment=self.attachment
             self.weapon.fire()
+            #print("yep I'm firing") #TODO why is this sideways??

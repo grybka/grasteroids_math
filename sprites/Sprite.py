@@ -365,4 +365,4 @@ class ViewConeSprite(DrawableSprite):
     def blit(self,screen,camera):
         pos=camera.get_screen_position(self.world_position)
         my_rect=(pos[0]-self.radius,pos[1]-self.radius,2*self.radius,2*self.radius)
-        pygame.draw.arc(screen,self.color,my_rect,screen.get_screen_angle(self.angle-self.angle_range),screen.get_screen_angle(self.angle+self.angle_range),1)
+        pygame.draw.arc(screen,self.color,my_rect,self.angle-self.angle_range+3.14159/2,self.angle+self.angle_range+3.14159/2,10)

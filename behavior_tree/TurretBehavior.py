@@ -18,14 +18,7 @@ def angle_subtract(a,b):
         x+=2*math.pi
     return x
 
-class DefaultTurretBehavior(BehaviorTree):
-    def __init__(self,npc,engine,data={}):
-        super().__init__(npc,data)
-        self.engine=engine
-        #in this case, NPC is a turret
 
-    def execute(self):
-        ...
 
 class TurretBehaviorScan(BehaviorTree):
     def __init__(self,npc,engine,data={}):
@@ -45,50 +38,55 @@ class TurretBehaviorScan(BehaviorTree):
             self.npc.angle=self.npc.min_angle  
         return BTreeResponse.SUCCESS      
 
-class TurretSearchForTarget(BehaviorTree):
-    def __init__(self,npc,data,engine,target_name="target"):
-        super().__init__(npc,data)
-        self.engine=engine
-        self.max_distance=10000
-        self.angle_range=math.pi/4
-        self.last_target=None
-        self.target_name=target_name
-
-    def execute(self):
-        position=self.npc.body.position
-        angle=self.npc.body.angle
-        objects=self.engine.point_query(position,self.max_distance)
-        objects_in_view_cone=[]
-        for object in objects:
-            if object==self.npc:
-                continue
-            dx=object.body.position-position
-            angle_to_object=dx.angle-math.pi/2
-            delta_angle=angle_subtract(angle_to_object,angle)
-            #print("angle to {} delta angle {}".format(object,delta_angle))
-            #print("self navigation mode {}".format(self.npc.pointing_navigation_mode))
-            if abs(delta_angle)<self.angle_range and object!=self.npc:
-                if object.is_trackable:
-                    objects_in_view_cone.append(object)        
-        if len(objects_in_view_cone)==0:
-            self.data[self.target_name]=None
-            return BTreeResponse.FAILURE            
-        if self.last_target in objects_in_view_cone:
-            self.data[self.target_name]=self.last_target
-            return BTreeResponse.SUCCESS        
-        self.last_target=objects_in_view_cone[0]        
-        self.data[self.target_name]=self.last_target
-        return BTreeResponse.SUCCESS
-
 #success is returned if the turret is able to fire
 class TurretBehaviorFireOnTarget(BehaviorTree):
-    def __init__(self,npc,engine,data={}):
+    def __init__(self,npc,engine,target_angle,data={}):
         super().__init__(npc,data)
         self.engine=engine
         self.angle_accuracy=0.1
+        self.target_angle=target_angle
 
     def execute(self):
-        if self.target_name not in self.data:
-            return BTreeResponse.FAILURE
-        target=self.data[self.target_name]
-        dx=target.body.position-self.npc.body.position
+        #print("Firing on target")
+        #print(self.npc.get_world_angle())
+        #print(self.target_angle)
+
+        if abs(self.npc.get_world_angle()-self.target_angle)<self.angle_accuracy:
+            self.npc.fire_weapon()
+            #print("Firing")
+            return BTreeResponse.SUCCESS
+        else:
+            if angle_subtract(self.npc.get_world_angle(),self.target_angle)>0:
+                self.npc.angle-=0.1
+            else:
+                self.npc.angle+=0.1
+        
+class DefaultTurretBehavior(BehaviorTree):
+    def __init__(self,npc,engine,data={}):
+        super().__init__(npc,data)
+        self.engine=engine
+
+        self.scan_behavior=TurretBehaviorScan(npc,data,engine)
+        #in this case, NPC is a turret
+
+    def execute(self):
+
+        #TODO Fix this angle handling, it's too wide a cone
+        objs=self.engine.get_objects_in_cone(self.npc.get_position(),self.npc.get_world_mount_angle(),math.pi/4,1000,filter=None)
+        if len(objs)!=0:
+            target=objs[0]
+            #get the angle to the target
+            dx=target.body.position-self.npc.get_position()            
+            angle_to_target=angle_subtract(dx.angle,math.pi/2)
+            self.npc.set_angle_to_world_angle(angle_to_target)                                              
+            #print("angle to target {}".format(angle_to_target))
+            firebehavior=TurretBehaviorFireOnTarget(self.npc,self.engine,angle_to_target)
+            firebehavior.execute()
+        else:
+            self.scan_behavior.execute()
+            #print("no target")
+
+        
+            
+
+        ...
