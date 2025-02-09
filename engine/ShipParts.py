@@ -309,7 +309,8 @@ class Turret(ShipPart):
     
     def fire_weapon(self):
         if self.weapon!=None:
-            self.weapon.direction=Vec2d(0,1).rotated(self.get_world_angle())
+            #the weapon itself takes care of ship angle
+            self.weapon.direction=Vec2d(0,1).rotated(self.attachment_angle+self.angle)
             self.weapon.attachment=self.attachment
             self.weapon.fire()
             #print("yep I'm firing") #TODO why is this sideways??

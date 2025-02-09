@@ -9,6 +9,7 @@ import pygame_gui
 from gui.GUI import *
 from pygame_gui.elements import UIButton
 from game_state.PlayGameState import *
+from game_state.ShipDesignerState import *
 from game_state.MenuStates import *
 
 

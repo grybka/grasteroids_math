@@ -55,7 +55,7 @@ class GameEngine:
         #torpedo.behavior_tree=InterceptShip(npc=torpedo,ship=self.my_ship)
         #self.schedule_add_object(torpedo)
         self.other_ship=None
-        self.new_enemy_countdown=5000000
+        self.new_enemy_countdown=5000
         self.respawn_player_countdown=5000
 
         #self.respawn_enemy()
@@ -317,7 +317,7 @@ class GameEngine:
 
 
 
-    def point_query(self,point,max_distance,filter=None):
+    def point_query(self,point,max_distance,filter=None,types=None):
         #TODO Implement filter correctly
         if filter is None:
             filter=pymunk.ShapeFilter()
@@ -325,13 +325,14 @@ class GameEngine:
         ret=[]
         for b in bodies:
             object=self.id_object_map[b.shape.body.id]
-            if object not in ret:
-                ret.append(object)
+            if types is None or isinstance(object,types):
+                if object not in ret:
+                    ret.append(object)
         return ret
     
     #helper functions
-    def get_objects_in_cone(self,position,angle,angle_range,max_distance,filter=None):
-        objects=self.point_query(position,max_distance,filter)
+    def get_objects_in_cone(self,position,angle,angle_range,max_distance,filter=None,types=None):
+        objects=self.point_query(position,max_distance,filter,types=types)
         objects_in_view_cone=[]
         for object in objects:
             dx=object.body.position-position
@@ -340,3 +341,6 @@ class GameEngine:
             if abs(delta_angle)<angle_range and object!=self.my_ship:
                 objects_in_view_cone.append(object)        
         return objects_in_view_cone
+    
+    def get_ships_in_cone(self,position,angle,angle_range,max_distance):
+        return self.get_objects_in_cone(position,angle,angle_range,max_distance,types=ControllableShip)

@@ -12,6 +12,8 @@ class TitleMenuWindowSelection(Enum):
     NOTHING=0
     SINGLE_PLAYER=1
     OBSERVER=2
+    BUILD_SHIP=3
+    EXIT=4
 
 class TitleMenuWindow(UIWindow):
     def __init__(self, ui_manager: pygame_gui.UIManager,state_manger):
@@ -44,6 +46,12 @@ class TitleMenuWindow(UIWindow):
                         container=self,
                         anchors={"centerx":"centerx",
                                  'top_target': self.singleplayer_button})
+        self.buildship_button=UIButton(relative_rect=button_rect,
+                        text="Ship Builder",
+                        manager=self.ui_manager,
+                        container=self,
+                        anchors={"centerx":"centerx",
+                                 'top_target': self.observer_button})
         
         #self.start_game=False
         self.selection=TitleMenuWindowSelection.NOTHING
@@ -60,6 +68,11 @@ class TitleMenuWindow(UIWindow):
             if event.ui_element == self.observer_button:
                 print('Start button pressed')
                 self.selection=TitleMenuWindowSelection.OBSERVER
+                #self.start_game=True
+                handled=True
+            if event.ui_element == self.buildship_button:
+                print('Start button pressed')
+                self.selection=TitleMenuWindowSelection.BUILD_SHIP
                 #self.start_game=True
                 handled=True
         return handled

@@ -30,6 +30,10 @@ class MainMenuState(GameState):
             self.state_manager.persistent_data["game_mode"]="observer"
 
             return True,"PlayGameState"
+        if self.menu_window.selection==TitleMenuWindowSelection.BUILD_SHIP:
+            self.menu_window.hide()
+            print("start ship builder")
+            return True,"ShipDesignerState"
         return False,None
     
     def handle_event(self,event):

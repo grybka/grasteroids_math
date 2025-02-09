@@ -25,6 +25,8 @@ class PlayGameState(GameState):
             controller = pygame.joystick.Joystick(0)
             self.engine.set_controller(controller)
             self.engine.spawn_player("ship1")
+        else:
+            self.engine.spawn_player("ship1")
 
         #self.menu_window.show()
 

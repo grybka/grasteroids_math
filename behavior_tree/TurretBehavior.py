@@ -70,9 +70,10 @@ class DefaultTurretBehavior(BehaviorTree):
         #in this case, NPC is a turret
 
     def execute(self):
-
         #TODO Fix this angle handling, it's too wide a cone
-        objs=self.engine.get_objects_in_cone(self.npc.get_position(),self.npc.get_world_mount_angle(),math.pi/4,1000,filter=None)
+#        objs=self.engine.get_objects_in_cone(self.npc.get_position(),self.npc.get_world_mount_angle(),math.pi/4,1000,filter=None)
+        objs=self.engine.get_ships_in_cone(self.npc.get_position(),self.npc.get_world_mount_angle(),math.pi/4,1000)
+
         if len(objs)!=0:
             target=objs[0]
             #get the angle to the target

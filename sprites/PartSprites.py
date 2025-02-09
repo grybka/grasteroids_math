@@ -27,12 +27,6 @@ class TurretSprite(DrawableSprite):
         arange=0.5*(self.max_angle-self.min_angle)
         #print("TurretSprite.blit: angle=%f, arange=%f" % (angle, arange))
 
-        view_cone=ViewConeSprite(self.world_position,angle,arange,20)
-        view_cone.blit(screen,camera)
-        #Draw target cone
-        #center=pos
-        #pt1=camera.get_screen_position(self.world_position+Vec2d(1,0).rotated(self.min_angle+self.ship_angle)*self.radius*5)
-        #pt2=camera.get_screen_position(self.world_position+Vec2d(1,0).rotated(self.max_angle+self.ship_angle)*self.radius*5)        
-        #pygame.draw.polygon(screen,(200,0,0),(center,pt1,pt2))
-        #dir=Vec2d(1,0).rotated(-self.angle-self.ship_angle)
+        #view_cone=ViewConeSprite(self.world_position,angle,arange,20)
+        #view_cone.blit(screen,camera)
         
