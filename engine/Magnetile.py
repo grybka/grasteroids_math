@@ -197,19 +197,32 @@ class MagnetileConstruction(GameObject):
         self.body = pymunk.Body()                
         #generate pymunk shapes
         self.shape = []
-        for m in self.magnetiles:
-            #print("magnetile position",m.body.position)
+        for m in self.magnetiles:            
             verts=m.get_vertices_worldspace()
             shape = pymunk.Poly(self.body, verts)
             shape.collision_type=COLLISION_TYPE_SHIP
             shape.density=magnetile_density
             shape.friction=0.5
             shape.elasticity=0.8
-            self.shape.append(shape)
+            self.shape.append(shape)            
         if re_center:
             self.re_center()
         #generate sprite
         self.sprite=MagnetileConstructionSprite(self)
+
+    def add_magnetile(self,magnetile):
+        self.magnetiles.append(magnetile)
+        #this is a repeat of the code in the constructor but how to avoid?
+        verts=magnetile.get_vertices_worldspace()
+        shape = pymunk.Poly(self.body, verts)
+        shape.collision_type=COLLISION_TYPE_SHIP
+        shape.density=magnetile_density
+        shape.friction=0.5
+        shape.elasticity=0.8
+        self.shape.append(shape)
+        self.sprite=MagnetileConstructionSprite(self)
+
+        #self.re_center()
     
     def get_mass(self):
         return sum([s.mass for s in self.shape])
@@ -265,4 +278,10 @@ class MagnetileConstruction(GameObject):
             f.write(yaml.dump(self.to_dict()))
                 
     def get_sprite(self):
-        return self.sprite        
+        return self.sprite    
+
+    def get_world_joint_pairs(self):
+        ret=[]
+        for m in self.magnetiles:
+            ret+=m.get_world_joint_pairs()
+        return ret    

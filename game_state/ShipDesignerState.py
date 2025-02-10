@@ -14,13 +14,15 @@ class ShipDesignerState(GameState):
 
     
     def update(self,ticks):  
+        self.engine.update(ticks)        
         return False,None
     
      
     def draw_state(self,screen):
-        self.engine.draw(screen)
+        self.engine.draw()
         
     def handle_event(self,event):
-        return self.engine.handle_event(event)
+        return False
+        #return self.engine.handle_event(event)
     
 state_dictionary["ShipDesignerState"]=ShipDesignerState
