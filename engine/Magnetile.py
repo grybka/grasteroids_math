@@ -80,6 +80,12 @@ class Magnetile(GameObject):
         self.max_lifetime=lifetime
         self.lifetime=0
 
+    
+
+    def set_color(self,color):
+        self.color=color
+        self.sprite=MagnetileSprite(self)
+
     def update(self,ticks,engine):
         super().update(ticks,engine)
         self.lifetime+=ticks/1000
@@ -134,7 +140,7 @@ class Magnetile(GameObject):
         
 
 class SquareMagnetile(Magnetile):
-    def __init__(self,position=Vec2d(0,0),color=None,scale=1):
+    def __init__(self,position=Vec2d(0,0),color=None,scale=1):        
         points=[(-scale/2,-scale/2),(-scale/2,scale/2),(scale/2,scale/2),(scale/2,-scale/2)]
         Magnetile.__init__(self,position,points,color=color)
 
@@ -195,6 +201,26 @@ class MagnetileConstruction(GameObject):
 
         #generate pymunk body
         self.body = pymunk.Body()                
+        
+        self.regnerate_shape()
+        if re_center:
+            self.re_center()
+        #generate sprite
+        self.sprite=MagnetileConstructionSprite(self)
+
+    def point_query(self,point):
+        print("poitn query",point)
+        for i in range(len(self.magnetiles)):
+            s=self.shape[i]        
+
+            pq=s.point_query(point)
+            print("i, pq ",i,pq)
+            print("shape is ",s.get_vertices())
+            if pq.distance>0:
+                return self.magnetiles[i]
+        return None
+
+    def regnerate_shape(self):
         #generate pymunk shapes
         self.shape = []
         for m in self.magnetiles:            
@@ -205,10 +231,6 @@ class MagnetileConstruction(GameObject):
             shape.friction=0.5
             shape.elasticity=0.8
             self.shape.append(shape)            
-        if re_center:
-            self.re_center()
-        #generate sprite
-        self.sprite=MagnetileConstructionSprite(self)
 
     def add_magnetile(self,magnetile):
         self.magnetiles.append(magnetile)
@@ -224,6 +246,11 @@ class MagnetileConstruction(GameObject):
 
         #self.re_center()
     
+    def remove_magnetile(self,magnetile):
+        self.magnetiles.remove(magnetile)
+        self.regnerate_shape()
+        ...
+
     def get_mass(self):
         return sum([s.mass for s in self.shape])
     

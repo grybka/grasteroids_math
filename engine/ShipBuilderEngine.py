@@ -38,6 +38,14 @@ class ShipBuilderEngine(UIPanel):
                     #attach the dragging object to the ship
                     self.the_ship.add_magnetile(self.dragging_object)
                     self.dragging_object=None
+                else:
+                    #check if we clicked on a magnetile
+                    world_pos=self.placement_camera.get_world_position(event.pos)
+                    selected_magnetile=self.the_ship.point_query(world_pos)
+                    if selected_magnetile is not None:
+                        self.dragging_object=selected_magnetile.my_copy()
+                        self.the_ship.remove_magnetile(selected_magnetile)
+                    
         return False
 
     def update(self,ticks):
