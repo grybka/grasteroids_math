@@ -1,6 +1,7 @@
 from engine.GameObjects import *
 from pymunk import Vec2d
 import yaml
+import copy
 
 magnetile_scale=40
 magnetile_density=0.05
@@ -120,7 +121,7 @@ class Magnetile(GameObject):
         return Magnetile(self.body.position,new_vertices)
     
     def my_copy(self):
-        return Magnetile(self.body.position,self.get_points(),color=self.color,angle=self.body.angle,lifetime=self.max_lifetime)
+        return Magnetile(self.body.position,self.get_points(),color=copy.deepcopy(self.color),angle=self.body.angle,lifetime=self.max_lifetime)
     
     def to_dict(self):
         position=[self.body.position[0],self.body.position[1]]
@@ -142,12 +143,14 @@ class Magnetile(GameObject):
 class SquareMagnetile(Magnetile):
     def __init__(self,position=Vec2d(0,0),color=None,scale=1):        
         points=[(-scale/2,-scale/2),(-scale/2,scale/2),(scale/2,scale/2),(scale/2,-scale/2)]
+
         Magnetile.__init__(self,position,points,color=color)
 
    
 class RectMagnetile(Magnetile):
     def __init__(self,position=Vec2d(0,0),color=None):
         points=[(-1/2,-1),(-1/2,1),(1/2,1),(1/2,-1)]
+        #points.reverse()
         Magnetile.__init__(self,position,points,color)
 
   
@@ -155,12 +158,14 @@ class RightTriangleMagnetile(Magnetile):
     def __init__(self,position=Vec2d(0,0),color=None,scale=1):
         #points=[(-magnetile_scale/2,-magnetile_scale/2),(-magnetile_scale/2,magnetile_scale/2),(magnetile_scale/2,-magnetile_scale/2)]
         points=[(-scale/2,-scale/2),(-scale/2,scale/2),(scale/2,-scale/2)]
+
         Magnetile.__init__(self,position,points,color)        
 
    
 class EquilateralTriangleMagnetile(Magnetile):
     def __init__(self,position=Vec2d(0,0),color=None):
         points=[(-1/2,-1/2),(0,math.sqrt(3)/2-1/2),(1/2,-1/2)]
+
         Magnetile.__init__(self,position,points,color)
 
    
@@ -202,26 +207,6 @@ class MagnetileConstruction(GameObject):
         #generate pymunk body
         self.body = pymunk.Body()                
         
-        self.regnerate_shape()
-        if re_center:
-            self.re_center()
-        #generate sprite
-        self.sprite=MagnetileConstructionSprite(self)
-
-    def point_query(self,point):
-        print("poitn query",point)
-        for i in range(len(self.magnetiles)):
-            s=self.shape[i]        
-
-            pq=s.point_query(point)
-            print("i, pq ",i,pq)
-            print("shape is ",s.get_vertices())
-            if pq.distance>0:
-                return self.magnetiles[i]
-        return None
-
-    def regnerate_shape(self):
-        #generate pymunk shapes
         self.shape = []
         for m in self.magnetiles:            
             verts=m.get_vertices_worldspace()
@@ -230,7 +215,22 @@ class MagnetileConstruction(GameObject):
             shape.density=magnetile_density
             shape.friction=0.5
             shape.elasticity=0.8
-            self.shape.append(shape)            
+            self.shape.append(shape) 
+        if re_center:
+            self.re_center()
+        #generate sprite
+        self.sprite=MagnetileConstructionSprite(self)
+
+    def point_query(self,point):
+        print("poitn query",point)
+        for i in range(len(self.magnetiles)):
+            s=self.shape[i]  
+            pq=s.point_query(point)
+            if pq.distance<0:
+                return self.magnetiles[i]
+        return None
+
+              
 
     def add_magnetile(self,magnetile):
         self.magnetiles.append(magnetile)
@@ -247,9 +247,11 @@ class MagnetileConstruction(GameObject):
         #self.re_center()
     
     def remove_magnetile(self,magnetile):
+        index=self.magnetiles.index(magnetile)
         self.magnetiles.remove(magnetile)
-        self.regnerate_shape()
-        ...
+        self.shape.remove(self.shape[index])
+        self.sprite=MagnetileConstructionSprite(self)
+
 
     def get_mass(self):
         return sum([s.mass for s in self.shape])
@@ -280,6 +282,8 @@ class MagnetileConstruction(GameObject):
         return {"type":"magnetile_construction","magnetiles":ret}    
     
     def get_bbox(self):
+        if len(self.magnetiles)==0:
+            return (0,0,0,0)
         #assumens center is at 0,0
         minx=1e9
         miny=1e9

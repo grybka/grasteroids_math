@@ -231,6 +231,8 @@ class AssemblyLayer:
                     world_pos=self.placement_camera.get_world_position(pos)
                     for obj in self.objects:
                         pq=obj.shape.point_query(world_pos)
+                        #print("pq",pq)
+                        #print("pq shape verts",pq.shape.get_vertices())
                         if pq.distance<0: 
                             self.placement_space.remove(obj.body,obj.shape)
                             self.objects.remove(obj)

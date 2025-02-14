@@ -5,6 +5,7 @@ from pygame_gui.elements.ui_window import UIWindow
 from pygame_gui.windows.ui_colour_picker_dialog import UIColourPickerDialog
 from pygame_gui.elements import UIImage,UIButton,UIPanel,UIScrollingContainer,UITextBox
 from engine.Magnetile import *
+from engine.ShipParts import *
 
 class MagnetileSelection(UIPanel):
     def __init__(self, ui_manager: pygame_gui.UIManager, ship_builder_engine,parent=None,anchors=None):
@@ -105,6 +106,34 @@ class MagnetileSelection(UIPanel):
         return handled
     
 
+class ComponentSelection(UIPanel):
+    def __init__(self, ui_manager: pygame_gui.UIManager, ship_builder_engine,parent=None,anchors=None):
+        super().__init__(pygame.Rect(0,0,200,600), 1,ui_manager,parent_element=parent,container=parent,anchors=anchors)
+        self.ship_builder_engine=ship_builder_engine
+        self.button_names=["Cannon","Torpedo Tube","Cannon Turret"]
+        self.buttons=[]
+        for name in self.button_names:
+            self.buttons.append(UIButton(relative_rect=pygame.Rect(5, 5, 100, 30),
+                                         text=name,
+                                            manager=ui_manager,
+                                            container=self,anchors={"left":"left","top_target":self.buttons[-1]} if len(self.buttons)>0 else {"left":"left","top":"top"}))
+    def process_event(self, event):
+        handled = super().process_event(event)
+        if event.type == pygame_gui.UI_BUTTON_PRESSED:
+            if event.ui_element in self.buttons:
+                button_index=self.buttons.index(event.ui_element)
+                print("button index was {}".format(button_index))
+                print("clicked on {}".format(self.button_names[button_index]))
+                if self.button_names[button_index]=="Cannon Turret":
+                    self.ship_builder_engine.turret_selected()
+
+                    ...
+                    #self.ship_builder_engine.add_component(Cannon())
+                return True
+        return handled
+    
+
+
 class MagnetileDesigner(UIWindow):
     def __init__(self, ui_manager: pygame_gui.UIManager, ship_builder_engine):
         super().__init__(pygame.Rect(0,0,400,1200), ui_manager, window_display_title='Designer')
@@ -113,12 +142,14 @@ class MagnetileDesigner(UIWindow):
                                      text='Tiles',
                                      manager=ui_manager,
                                      container=self,anchors={"left":"left","top":"top"})
-        self.color_button=UIButton(relative_rect=pygame.Rect(5, 5, 100, 30),
-                                     text='Colors',
+        self.component_button=UIButton(relative_rect=pygame.Rect(5, 5, 100, 30),
+                                     text='Components',
                                      manager=ui_manager,
                                      container=self,anchors={"left_target":self.tile_button})
-        self.magnetile_selection=MagnetileSelection(ui_manager,ship_builder_engine,self,anchors={"left":"left","top_target":self.color_button})
+        self.magnetile_selection=MagnetileSelection(ui_manager,ship_builder_engine,self,anchors={"left":"left","top_target":self.component_button})
         self.magnetile_selection.hide()
+        self.component_selection=ComponentSelection(ui_manager,ship_builder_engine,self,anchors={"left":"left","top_target":self.component_button})
+        self.component_selection.hide()
         self.active_panel=None
 
     def process_event(self, event):
@@ -130,10 +161,10 @@ class MagnetileDesigner(UIWindow):
                 self.active_panel=self.magnetile_selection
                 self.active_panel.show()                  
                 return True
-            if event.ui_element == self.color_button:
+            if event.ui_element == self.component_button:
                 if self.active_panel is not None:
                     self.active_panel.hide()
-                self.active_panel=self.color_panel                
+                self.active_panel=self.component_selection                
                 self.active_panel.show()                  
                 return True
         return handled
