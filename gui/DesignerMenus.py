@@ -124,6 +124,8 @@ class ComponentSelection(UIPanel):
                 button_index=self.buttons.index(event.ui_element)
                 print("button index was {}".format(button_index))
                 print("clicked on {}".format(self.button_names[button_index]))
+                if self.button_names[button_index]=="Cannon":
+                    self.ship_builder_engine.cannon_selected()
                 if self.button_names[button_index]=="Cannon Turret":
                     self.ship_builder_engine.turret_selected()
 
@@ -136,7 +138,8 @@ class ComponentSelection(UIPanel):
 
 class MagnetileDesigner(UIWindow):
     def __init__(self, ui_manager: pygame_gui.UIManager, ship_builder_engine):
-        super().__init__(pygame.Rect(0,0,400,1200), ui_manager, window_display_title='Designer')
+        super().__init__(pygame.Rect(0,0,400,800), ui_manager, window_display_title='Designer')
+        self.ship_builder_engine=ship_builder_engine
         
         self.tile_button=UIButton(relative_rect=pygame.Rect(5, 5, 100, 30),
                                      text='Tiles',
@@ -146,12 +149,17 @@ class MagnetileDesigner(UIWindow):
                                      text='Components',
                                      manager=ui_manager,
                                      container=self,anchors={"left_target":self.tile_button})
+        self.pair_mode_button=UIButton(relative_rect=pygame.Rect(5, 750-35, 100, 30),
+                                        text='Pair Mode',
+                                        manager=ui_manager,
+                                        container=self)
         self.magnetile_selection=MagnetileSelection(ui_manager,ship_builder_engine,self,anchors={"left":"left","top_target":self.component_button})
         self.magnetile_selection.hide()
         self.component_selection=ComponentSelection(ui_manager,ship_builder_engine,self,anchors={"left":"left","top_target":self.component_button})
         self.component_selection.hide()
         self.active_panel=None
-
+        
+        
     def process_event(self, event):
         handled = super().process_event(event)
         if event.type == pygame_gui.UI_BUTTON_PRESSED:
@@ -166,5 +174,12 @@ class MagnetileDesigner(UIWindow):
                     self.active_panel.hide()
                 self.active_panel=self.component_selection                
                 self.active_panel.show()                  
+                return True
+            if event.ui_element == self.pair_mode_button:
+                self.ship_builder_engine.pair_mode=not self.ship_builder_engine.pair_mode
+                if self.ship_builder_engine.pair_mode:
+                    self.pair_mode_button.set_text("!Pair Mode")
+                else:
+                    self.pair_mode_button.set_text("Pair Mode")
                 return True
         return handled

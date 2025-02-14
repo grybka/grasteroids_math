@@ -56,10 +56,12 @@ class ShipBuilderEngine(UIPanel):
         #self.selection_window=MagnetileSelection(self.ui_manager,self)
 
         self.dragging_object=None
+        self.paired_dragging_object=None
         self.part_holder_ship=PartHolderShip()
         self.placement_space.add(self.part_holder_ship.body)
 
         self.placement_space.step(1/1000)
+        self.pair_mode=False
 
     def process_event(self, event):
         handled = super().process_event(event)
@@ -71,14 +73,24 @@ class ShipBuilderEngine(UIPanel):
                         #attach the dragging object to the ship
                         self.remove_ship()
                         self.the_ship.add_magnetile(self.dragging_object)
+                        if self.paired_dragging_object is not None:
+                            self.the_ship.add_magnetile(self.paired_dragging_object)
+                            self.paired_dragging_object=None
                         self.add_ship()
                         self.dragging_object=None
                     elif self.dragging_object==self.part_holder_ship:
                         part=self.part_holder_ship.part
-                        part.attachment=self.dragging_object.body.position-self.the_ship.body.position
-                        self.the_ship.add_part(part)
+                        part.attachment=self.dragging_object.body.position-self.the_ship.body.position                      
+                        self.the_ship.add_part(part)                          
+                        #part.debug_print()
+                        if self.pair_mode:
+                            part2=copy.deepcopy(part)
+                            part2.attachment=Vec2d(-part.attachment[0],part.attachment[1])
+                            self.the_ship.add_part(part2)
                         self.part_holder_ship.part=None                        
                         self.dragging_object=None
+                        return True
+                        #part.debug_print()
                     else:
                         abort("unknown dragging object",self.dragging_object)
 
@@ -128,7 +140,7 @@ class ShipBuilderEngine(UIPanel):
             #TODO need to think about how to represent ship first
             if isinstance(self.dragging_object,Magnetile):
                 self.check_snap()          
-        self.placement_space.step(1/1000)
+        #self.placement_space.step(1/1000)
 
 
     def draw(self):
@@ -156,6 +168,8 @@ class ShipBuilderEngine(UIPanel):
         #draw the dragging object
         if self.dragging_object is not None:
             self.dragging_object.get_sprite().blit(screen,self.placement_camera)
+        if self.paired_dragging_object is not None:
+            self.paired_dragging_object.get_sprite().blit(screen,self.placement_camera)
 
     def magnetile_selected(self,magnetile):
         self.dragging_object=magnetile.my_copy()
@@ -164,6 +178,10 @@ class ShipBuilderEngine(UIPanel):
         #self.dragging_object=TurretDummy()
         #self.dragging_object=self.part_holder_ship
         self.part_holder_ship.part=Turret(self.part_holder_ship,attachment=Vec2d(0,0))
+        self.dragging_object=self.part_holder_ship
+
+    def cannon_selected(self):
+        self.part_holder_ship.part=Cannon(self.part_holder_ship,attachment=Vec2d(0,0))
         self.dragging_object=self.part_holder_ship
 
     def check_snap(self):
@@ -183,11 +201,18 @@ class ShipBuilderEngine(UIPanel):
                     if goodness<best_goodness:
                         best_goodness=goodness
                         best_snap=(delta_dist,delta_angle)
-        if best_snap is not None:
-            
+        if best_snap is not None:            
             self.dragging_object.body.position+=best_snap[0]
             self.dragging_object.body.angle+=best_snap[1]
+            if self.pair_mode:
+                if self.paired_dragging_object is None:
+                    self.paired_dragging_object=self.dragging_object.my_copy().invert()
+                self.paired_dragging_object.body.position=Vec2d(-self.dragging_object.body.position[0],self.dragging_object.body.position[1])                
+                self.paired_dragging_object.body.angle=-self.dragging_object.body.angle                    
+            else:
+                self.paired_dragging_object=None                    
             return
+        self.paired_dragging_object=None
         #failing that, snap to center line
         if abs(self.dragging_object.body.position.x)<30:
             new_pos=Vec2d(0,self.dragging_object.body.position.y)

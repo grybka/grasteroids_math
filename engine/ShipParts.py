@@ -7,10 +7,16 @@ from behavior_tree.ComplexBehaviors import *
 from behavior_tree.TurretBehavior import *
 
 class ShipPart:
-    def __init__(self,attachement=Vec2d(0,0),ship=None):        
-        self.attachment=attachement
+    def __init__(self,attachment=Vec2d(0,0),ship=None,attachment_angle=0):        
+        self.attachment=attachment
+        self.attachment_angle=attachment_angle
         self.ship=ship
         self.radius=0 #for selecting
+
+    def debug_print(self):
+        print("attachment ",self.attachment)
+        print("attachment angle ",self.attachment_angle)
+        print("radius ",self.radius)
 
     def get_attachment(self):
         return self.attachment
@@ -158,9 +164,9 @@ class ManeuverThruster(ShipPart):
 
 
 class Cannon(ShipPart):
-    def __init__(self,attachment=Vec2d(0,0),cooldown=0.2,projectile_speed=1300,direction=Vec2d(0,1)):
-        ShipPart.__init__(self)
-        self.attachment=attachment
+    def __init__(self,ship=None,attachment=Vec2d(0,0),cooldown=0.2,projectile_speed=1300,attachment_angle=0):
+        super().__init__(ship=ship,attachment=attachment,attachment_angle=attachment_angle)        
+        
         self.cooldown=cooldown
         self.burst_size=3
         self.burst_cooldown=1
@@ -169,12 +175,26 @@ class Cannon(ShipPart):
         self.projectile_speed=projectile_speed
         #self.projectile_color=projectile_color
         self.firing=False
-        self.direction=direction
+        #self.direction=direction
 
     def fire(self):
         self.firing=True
 
+    def get_sprite(self,ship): 
+        ret=DebugPolySprite([Vec2d(-3,0),Vec2d(-3,10),Vec2d(3,10),Vec2d(3,0)],(200,200,200))
+        ret.set_world_position(ship.body.position+self.attachment.rotated(ship.body.angle))
+        ret.angle=ship.body.angle+self.attachment.angle
+        #print("ship angle ",ship.body.angle)
+        #print("attachment angle ",self.attachment.angle)
+        #print("angle ",ret.angle)
+        #ret.angle=0
+
+        return ret
+
+
+
     def update(self,ticks,engine,ship):
+        self.direction=Vec2d(0,1).rotated(ship.body.angle+self.attachment.angle)
         self.time_since_last_shot+=ticks/1000
         if self.time_since_last_shot>self.burst_cooldown:
             self.burst_count=0
@@ -184,7 +204,7 @@ class Cannon(ShipPart):
             projectile=Bullet()
             projectile.set_position(ship.body.position+self.attachment.rotated(ship.body.angle))
             projectile.set_angle(ship.body.angle)
-            projectile.set_velocity(ship.body.velocity+self.direction.rotated(ship.body.angle)*self.projectile_speed)            
+            projectile.set_velocity(ship.body.velocity+self.direction*self.projectile_speed)            
             engine.schedule_add_object(projectile)           
             self.burst_count+=1             
             projectile_momentum=projectile.get_mass()*projectile.body.velocity
@@ -196,8 +216,8 @@ class Cannon(ShipPart):
     
 
 class TorpedoLauncher(ShipPart):
-    def __init__(self,attachment=Vec2d(0,0),cooldown=1,launch_velocity=200,direction=Vec2d(0,1),ammunition_instance=None):
-        ShipPart.__init__(self)
+    def __init__(self,ship=None,attachment=Vec2d(0,0),cooldown=1,launch_velocity=200,direction=Vec2d(0,1),ammunition_instance=None):
+        super().__init__(ship=ship)
 
         self.attachment=attachment
         self.cooldown=cooldown
@@ -210,6 +230,12 @@ class TorpedoLauncher(ShipPart):
 
     def fire(self):
         self.firing=True
+
+    def get_sprite(self,ship): 
+        ret=DebugPolySprite([Vec2d(-3,0),Vec2d(-3,10),Vec2d(3,10),Vec2d(3,0)],(230,230,230))
+        ret.set_world_position(ship.body.position+self.attachment.rotated(ship.body.angle))
+        ret.angle=ship.body.angle+self.attachment.angle
+        return ret
 
     def update(self, ticks, engine, ship):
         self.time_since_last_shot+=ticks/1000
@@ -275,8 +301,8 @@ class Turret(ShipPart):
         self.min_angle=-math.pi/4
         self.attachment_angle=attachment_angle
         self.angle=self.attachment_angle
-        #TODO handle straight down
-        self.weapon=Cannon(attachment=Vec2d(0,0),cooldown=0.2,projectile_speed=1600,direction=Vec2d(0,1))   
+        #TODO handle straight down        
+        self.weapon=Cannon(attachment=Vec2d(0,0),cooldown=0.2,projectile_speed=1600,attachment_angle=self.angle)   
         self.behavior=None
 
     def get_position(self):
@@ -306,7 +332,7 @@ class Turret(ShipPart):
         self.angle=target_angle
         
 
-    def update(self,ticks,engine,ship):
+    def update(self,ticks,engine,ship):        
         if self.behavior==None:
             #self.behavior=TurretBehaviorScan(self,None)     
             self.behavior=DefaultTurretBehavior(self,engine,{})

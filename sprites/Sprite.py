@@ -282,14 +282,16 @@ class MagnetileConstructionSprite:
         self.image=None
 
     def build_image(self):
-        print("building image")
+        #print("building image")
         bbox=self.construction.get_bbox()
+        
         #because of the way the sprite is built, this needs to be centered rectangle even though the bbox is not
         # center of mass issues
         xradius=max(abs(bbox[0]),abs(bbox[2]))
         yradius=max(abs(bbox[1]),abs(bbox[3]))        
         
-        self.image=pygame.Surface( (math.ceil(2*xradius),math.ceil(2*yradius)),pygame.SRCALPHA)
+        self.image=pygame.Surface( (math.ceil(2*xradius),math.ceil(2*yradius)),pygame.SRCALPHA)        
+        
         empty_camera=Camera()
         empty_camera.set_screen(self.image)
         for magnetile in self.construction.magnetiles:

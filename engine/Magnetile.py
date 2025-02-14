@@ -72,6 +72,7 @@ class Magnetile(GameObject):
         self.shape.friction=0.5
         self.shape.elasticity=0.8
         #pick a color
+        print("init color is {}".format(color))
         if color is None:
             self.color=random_magnetile_color()
         else:
@@ -118,9 +119,10 @@ class Magnetile(GameObject):
         points=self.get_points()
         points.reverse()
         new_vertices=[(-v[0],v[1]) for v in points]        
-        return Magnetile(self.body.position,new_vertices)
+        return Magnetile(self.body.position,new_vertices,color=self.color)
     
     def my_copy(self):
+        print("my copy color {}".format(self.color))
         return Magnetile(self.body.position,self.get_points(),color=copy.deepcopy(self.color),angle=self.body.angle,lifetime=self.max_lifetime)
     
     def to_dict(self):
