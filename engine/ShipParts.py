@@ -149,9 +149,12 @@ class ManeuverThruster(ShipPart):
     def __init__(self,**kwargs):
         ShipPart.__init__(self)
         self.attachment=(0,0)        
-        attachment_side=kwargs.pop("attachment_side")
-        attachment_front=kwargs.pop("attachment_front")
-        attachment_back=kwargs.pop("attachment_back")
+        #attachment_side=kwargs.pop("attachment_side")
+        #attachment_front=kwargs.pop("attachment_front")
+        #attachment_back=kwargs.pop("attachment_back")
+        attachment_side=10
+        attachment_front=10
+        attachment_back=10
         direction=kwargs.pop("direction",None)
         ShipPart.__init__(self,Vec2d(0,0))        
         self.thruster_2=Thruster(attachment=Vec2d(0,-attachment_back),direction=Vec2d(0,1),**kwargs)        

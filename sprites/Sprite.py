@@ -127,6 +127,8 @@ class MagnetileSprite(DrawableSprite):
     def blit(self,screen,camera):        
         vertices=[camera.get_screen_position(self.magnetile.body.position+v.rotated(self.magnetile.body.angle)) for v in self.magnetile.vertices]
         pygame.draw.polygon(screen,self.magnetile.color,vertices)        
+        pygame.draw.polygon(screen,(255,255,255),vertices,1)        
+
         """
         for magnet in self.magnetile.magnets:
             inset=3

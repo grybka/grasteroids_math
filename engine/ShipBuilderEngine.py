@@ -218,11 +218,30 @@ class ShipBuilderEngine(UIPanel):
             return
         self.paired_dragging_object=None
         #failing that, snap to center line
-        if abs(self.dragging_object.body.position.x)<30:
-            new_pos=Vec2d(0,self.dragging_object.body.position.y)
-            self.dragging_object.body.position=new_pos
-            return 
-            #print("snap",best_snap)
+        if not self.pair_mode:
+            if abs(self.dragging_object.body.position.x)<30:
+                new_pos=Vec2d(0,self.dragging_object.body.position.y)
+                self.dragging_object.body.position=new_pos
+                return 
+                #print("snap",best_snap)
+        else:
+            for source_joint_pair in self.dragging_object.get_world_joint_pairs():
+                goodness=abs(source_joint_pair.magnet1.position.x)
+                delta_angle=source_joint_pair.magnet1.normal.get_angle_between(Vec2d(1,0))
+                if goodness<best_goodness:
+                    best_goodness=goodness
+                    best_snap=(Vec2d(-source_joint_pair.magnet1.position.x,source_joint_pair.magnet1.position.y),delta_angle)     
+            if best_snap is not None:            
+                self.dragging_object.body.position+=best_snap[0]
+                self.dragging_object.body.angle+=best_snap[1]
+                if self.pair_mode:
+                    if self.paired_dragging_object is None:
+                        self.paired_dragging_object=self.dragging_object.my_copy().invert()
+                    self.paired_dragging_object.body.position=Vec2d(-self.dragging_object.body.position[0],self.dragging_object.body.position[1])                
+                    self.paired_dragging_object.body.angle=-self.dragging_object.body.angle                    
+                else:
+                    self.paired_dragging_object=None                    
+                return       
 
     def remove_ship(self):
         if len(self.the_ship.shape)>0:
@@ -231,3 +250,14 @@ class ShipBuilderEngine(UIPanel):
     def add_ship(self):
         if len(self.the_ship.shape)>0:
            self.placement_space.add(self.the_ship.body,*self.the_ship.shape)
+
+    def save_ship(self,filename):
+        ship_dict=self.the_ship.to_dict()
+        with open(filename, 'w') as file:
+            yaml.dump(ship_dict, file)
+    def load_ship(self,filename):
+        with open(filename, 'r') as file:
+            ship_dict = yaml.load(file, Loader=yaml.FullLoader)
+            self.remove_ship()            
+            self.the_ship.from_dict(ship_dict)
+            self.add_ship()

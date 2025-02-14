@@ -266,6 +266,7 @@ class MagnetileShip(MagnetileConstruction, ControllableShip):
     def from_dict(d):
         ret=MagnetileShip()
         ret.magnetiles=MagnetileConstruction.from_dict(d["magnetiles"])
+        print("loaded {} magnetiles".format(len(ret.magnetiles)))
         ret.ship_parts=[]
         for part in d["ship_parts"]:
             ret.add_part(load_part_from_dict(part))

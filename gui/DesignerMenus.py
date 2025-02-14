@@ -3,6 +3,7 @@ import pygame_gui
 
 from pygame_gui.elements.ui_window import UIWindow
 from pygame_gui.windows.ui_colour_picker_dialog import UIColourPickerDialog
+from pygame_gui.windows.ui_file_dialog import UIFileDialog
 from pygame_gui.elements import UIImage,UIButton,UIPanel,UIScrollingContainer,UITextBox
 from engine.Magnetile import *
 from engine.ShipParts import *
@@ -55,6 +56,7 @@ class MagnetileSelection(UIPanel):
             self.selections.append(ship_image)
             last_choice=ship_image
         self.set_current_color(pygame.Color(255, 0, 0, 255))
+        self.colour_picker = None
     
         
     def set_current_color(self,color):
@@ -155,11 +157,22 @@ class MagnetileDesigner(UIWindow):
                                         text='Pair Mode',
                                         manager=ui_manager,
                                         container=self)
+        self.save_button=UIButton(relative_rect=pygame.Rect(5, 750-35, 100, 30),
+                                        text='Save Ship',
+                                        manager=ui_manager,
+                                        container=self,anchors={"left":"left","left_target":self.pair_mode_button})
+        self.load_button=UIButton(relative_rect=pygame.Rect(5, 750-35, 100, 30),
+                                        text='Load Ship',
+                                        manager=ui_manager,
+                                        container=self,anchors={"left":"left","left_target":self.save_button})
         self.magnetile_selection=MagnetileSelection(ui_manager,ship_builder_engine,self,anchors={"left":"left","top_target":self.component_button})
         self.magnetile_selection.hide()
         self.component_selection=ComponentSelection(ui_manager,ship_builder_engine,self,anchors={"left":"left","top_target":self.component_button})
         self.component_selection.hide()
         self.active_panel=None
+        self.save_file_dialog=None
+        self.load_file_dialog=None
+        
         
         
     def process_event(self, event):
@@ -184,4 +197,28 @@ class MagnetileDesigner(UIWindow):
                 else:
                     self.pair_mode_button.set_text("Pair Mode")
                 return True
+            if event.ui_element == self.save_button:
+                self.save_file_dialog=UIFileDialog(pygame.Rect(160, 50, 420, 400),
+                                                              self.ui_manager,
+                                                              window_title='Save Ship...',
+                                                              initial_file_path="ships.yaml")
+                self.save_file_dialog.set_blocking(True)
+                                                              
+                return True 
+            if event.ui_element == self.load_button:
+                self.load_file_dialog=UIFileDialog(pygame.Rect(160, 50, 420, 400),
+                                                              self.ui_manager,
+                                                              window_title='Load Ship...',
+                                                              initial_file_path="ships.yaml")
+                self.load_file_dialog.set_blocking(True)
+                                                              
+                return True 
+        if event.type == pygame_gui.UI_FILE_DIALOG_PATH_PICKED and event.ui_element == self.save_file_dialog:
+            print("file dialog path picked")
+            print(event.text)
+            self.ship_builder_engine.save_ship(event.text)
+            return True
+        if event.type == pygame_gui.UI_FILE_DIALOG_PATH_PICKED and event.ui_element == self.load_file_dialog: 
+            self.ship_builder_engine.load_ship(event.text)            
+            return True
         return handled
