@@ -128,6 +128,8 @@ class ComponentSelection(UIPanel):
                     self.ship_builder_engine.cannon_selected()
                 if self.button_names[button_index]=="Cannon Turret":
                     self.ship_builder_engine.turret_selected()
+                if self.button_names[button_index]=="Torpedo Tube":
+                    self.ship_builder_engine.torpedo_selected()
 
                     ...
                     #self.ship_builder_engine.add_component(Cannon())

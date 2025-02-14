@@ -253,6 +253,28 @@ class MagnetileShip(MagnetileConstruction, ControllableShip):
             else:
                 self.missile_launcher.fire()
 
+    def to_dict(self):
+        ret={}
+        ret["magnetiles"]=MagnetileConstruction.to_dict(self)
+        ret["ship_parts"]=[]
+        for part in self.ship_parts:
+            ret["ship_parts"].append(part.to_dict())
+        ret["health"]=self.health
+        ret["shields"]=self.shields
+        return ret
+    @staticmethod
+    def from_dict(d):
+        ret=MagnetileShip()
+        ret.magnetiles=MagnetileConstruction.from_dict(d["magnetiles"])
+        ret.ship_parts=[]
+        for part in d["ship_parts"]:
+            ret.add_part(load_part_from_dict(part))
+        ret.health=d["health"]
+        ret.shields=d["shields"]
+        return ret
+
+        
+
 class ShipFactory:
     def __init__(self):
         self.ship_info={}

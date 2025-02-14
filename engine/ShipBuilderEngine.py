@@ -81,7 +81,7 @@ class ShipBuilderEngine(UIPanel):
                     elif self.dragging_object==self.part_holder_ship:
                         part=self.part_holder_ship.part
                         part.attachment=self.dragging_object.body.position-self.the_ship.body.position                      
-                        self.the_ship.add_part(part)                          
+                        self.the_ship.add_part(part)                        
                         #part.debug_print()
                         if self.pair_mode:
                             part2=copy.deepcopy(part)
@@ -182,6 +182,10 @@ class ShipBuilderEngine(UIPanel):
 
     def cannon_selected(self):
         self.part_holder_ship.part=Cannon(self.part_holder_ship,attachment=Vec2d(0,0))
+        self.dragging_object=self.part_holder_ship
+
+    def torpedo_selected(self):
+        self.part_holder_ship.part=TorpedoLauncher(self.part_holder_ship,attachment=Vec2d(0,0))
         self.dragging_object=self.part_holder_ship
 
     def check_snap(self):
