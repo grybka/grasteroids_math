@@ -10,9 +10,20 @@ class ShipPart:
     def __init__(self,attachement=Vec2d(0,0),ship=None):        
         self.attachment=attachement
         self.ship=ship
+        self.radius=0 #for selecting
 
     def get_attachment(self):
         return self.attachment
+    
+    def get_world_position(self):
+        if self.ship is None:
+            return self.attachment
+        return self.ship.body.position+self.attachment.rotated(self.ship.body.angle)
+    
+    def point_in_part(self,point):
+        if self.radius==0:
+            return False
+        return (point-self.get_world_position()).length<self.radius
     
     def update(self,ticks,engine,ship):
         pass
@@ -100,6 +111,7 @@ class ReactionWheel(ShipPart):
     
 class ManeuverThruster(ShipPart):
     def __init__(self,**kwargs):
+        ShipPart.__init__(self)
         self.attachment=(0,0)        
         attachment_side=kwargs.pop("attachment_side")
         attachment_front=kwargs.pop("attachment_front")
@@ -147,6 +159,7 @@ class ManeuverThruster(ShipPart):
 
 class Cannon(ShipPart):
     def __init__(self,attachment=Vec2d(0,0),cooldown=0.2,projectile_speed=1300,direction=Vec2d(0,1)):
+        ShipPart.__init__(self)
         self.attachment=attachment
         self.cooldown=cooldown
         self.burst_size=3
@@ -184,6 +197,8 @@ class Cannon(ShipPart):
 
 class TorpedoLauncher(ShipPart):
     def __init__(self,attachment=Vec2d(0,0),cooldown=1,launch_velocity=200,direction=Vec2d(0,1),ammunition_instance=None):
+        ShipPart.__init__(self)
+
         self.attachment=attachment
         self.cooldown=cooldown
         self.time_since_last_shot=0
@@ -237,6 +252,7 @@ class LaserCannon(ShipPart):
 
 class TractorBeam(ShipPart):
     def __init__(self,attachment=Vec2d(0,0)):
+        ShipPart.__init__(self)
         self.attachment=attachment
         self.max_distance=100
         self.force_strength=10000
@@ -254,6 +270,7 @@ class Turret(ShipPart):
     def __init__(self,ship,attachment=Vec2d(0,0),attachment_angle=0):
         super().__init__(attachment,ship)
         #self.max_angle=-math.pi*3/4
+        self.radius=20
         self.max_angle=math.pi/4
         self.min_angle=-math.pi/4
         self.attachment_angle=attachment_angle

@@ -11,8 +11,7 @@ import random
 
 
 class ControllableShip(GameObject):
-    def __init__(self):
-        ...
+    def __init__(self):        
         self.pointing_navigation_mode=PointingNavigationMode.MANUAL
         self.velocity_navigation_mode=VelocityNavigationMode.MANUAL
         self.desired_acceleration=Vec2d(0,0)

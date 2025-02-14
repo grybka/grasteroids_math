@@ -50,6 +50,19 @@ class MagnetileShip(MagnetileConstruction, ControllableShip):
     
     def get_cargo_count(self,engine):
         return self.cargo_count
+    
+    def point_query_part(self,point):
+        for part in self.ship_parts:
+            if part.point_in_part(point):
+                return part            
+        return None
+    
+    def add_part(self,part):
+        part.ship=self
+        self.ship_parts.append(part)
+
+    def remove_part(self,part):
+        self.ship_parts.remove(part)
         
 
     def update(self,ticks,engine):

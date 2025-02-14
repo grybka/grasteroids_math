@@ -3,6 +3,22 @@ import pymunk
 from sprites.Sprite import *
 from engine.MagnetileShip import *
 from gui.DesignerMenus import *
+from engine.Ship import ControllableShip
+
+class PartHolderShip(ControllableShip):
+    def __init__(self):
+        super().__init__()
+        self.body = pymunk.Body(1,1)
+        self.part=None    
+
+    def get_sprite(self):
+        #sprite=ShipSprite(self)
+        #for part in self.ship_parts:
+        #    sprite.add_part(part)
+        #return sprite
+        return self.part.get_sprite(self)
+
+
 
 class TurretDummy:
     def __init__(self):
@@ -40,6 +56,9 @@ class ShipBuilderEngine(UIPanel):
         #self.selection_window=MagnetileSelection(self.ui_manager,self)
 
         self.dragging_object=None
+        self.part_holder_ship=PartHolderShip()
+        self.placement_space.add(self.part_holder_ship.body)
+
         self.placement_space.step(1/1000)
 
     def process_event(self, event):
@@ -54,9 +73,14 @@ class ShipBuilderEngine(UIPanel):
                         self.the_ship.add_magnetile(self.dragging_object)
                         self.add_ship()
                         self.dragging_object=None
-                    elif isinstance(self.dragging_object,TurretDummy):
-                        self.the_ship.ship_parts.append(Turret(self.the_ship,attachment=self.dragging_object.position))
+                    elif self.dragging_object==self.part_holder_ship:
+                        part=self.part_holder_ship.part
+                        part.attachment=self.dragging_object.body.position-self.the_ship.body.position
+                        self.the_ship.add_part(part)
+                        self.part_holder_ship.part=None                        
                         self.dragging_object=None
+                    else:
+                        abort("unknown dragging object",self.dragging_object)
 
                         ...
                 else:
@@ -64,12 +88,35 @@ class ShipBuilderEngine(UIPanel):
 
                     #check if we clicked on a magnetile
                     world_pos=self.placement_camera.get_world_position(pos)
+                    selected_part=self.the_ship.point_query_part(world_pos)
+                    if selected_part is not None:
+                        print("selected part is ",selected_part)
+                        self.dragging_object=selected_part
+                        self.the_ship.remove_part(selected_part)
+
                     selected_magnetile=self.the_ship.point_query(world_pos)
                     if selected_magnetile is not None:
                         self.dragging_object=selected_magnetile.my_copy()
                         self.remove_ship()
                         self.the_ship.remove_magnetile(selected_magnetile)
                         self.add_ship()
+            if event.button==3: #remove object            
+                self.dragging_object=None
+            if event.button==4:
+                if self.dragging_object is not None:
+                    self.dragging_object.body.angle+=0.3
+                else:
+                    self.placement_camera.zoom*=0.9
+                
+            if event.button==5:
+                if self.dragging_object is not None:
+                    self.dragging_object.body.angle-=0.3
+                else:
+                    self.placement_camera.zoom*=1.1      
+
+            if event.button==2:
+                if self.dragging_object is not None:
+                    self.dragging_object=self.dragging_object.invert() 
                     
         return False
 
@@ -88,6 +135,22 @@ class ShipBuilderEngine(UIPanel):
         screen=self.game_surface_element.image
         self.placement_camera.set_screen(screen)
         screen.fill((0,0,0))
+        #draw a dashed line down the center
+        dashed_line_color=(255,255,255)
+        line_top=self.placement_camera.get_screen_position(Vec2d(0,400))
+        line_bottom=self.placement_camera.get_screen_position(Vec2d(0,-400))
+        n_dashes=20
+        for i in range(n_dashes):
+            if i%2==0:
+                continue
+            x1=int(line_bottom[0]+(line_top[0]-line_bottom[0])*i/n_dashes)
+            x2=int(line_bottom[0]+(line_top[0]-line_bottom[0])*(i+1)/n_dashes)
+            y1=int(line_bottom[1]+(line_top[1]-line_bottom[1])*i/n_dashes)
+            y2=int(line_bottom[1]+(line_top[1]-line_bottom[1])*(i+1)/n_dashes)            
+            pos1=(x1,y1)
+            pos2=(x2,y2)
+            pygame.draw.line(screen,dashed_line_color,pos1,pos2,1)        
+
 
         self.the_ship.get_sprite().blit(screen,self.placement_camera)
         #draw the dragging object
@@ -98,7 +161,10 @@ class ShipBuilderEngine(UIPanel):
         self.dragging_object=magnetile.my_copy()
 
     def turret_selected(self):
-        self.dragging_object=TurretDummy()
+        #self.dragging_object=TurretDummy()
+        #self.dragging_object=self.part_holder_ship
+        self.part_holder_ship.part=Turret(self.part_holder_ship,attachment=Vec2d(0,0))
+        self.dragging_object=self.part_holder_ship
 
     def check_snap(self):
         #if dragging an object, check if it is close to another object
@@ -121,6 +187,12 @@ class ShipBuilderEngine(UIPanel):
             
             self.dragging_object.body.position+=best_snap[0]
             self.dragging_object.body.angle+=best_snap[1]
+            return
+        #failing that, snap to center line
+        if abs(self.dragging_object.body.position.x)<30:
+            new_pos=Vec2d(0,self.dragging_object.body.position.y)
+            self.dragging_object.body.position=new_pos
+            return 
             #print("snap",best_snap)
 
     def remove_ship(self):
