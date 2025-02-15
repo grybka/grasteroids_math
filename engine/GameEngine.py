@@ -55,7 +55,7 @@ class GameEngine:
         #torpedo.behavior_tree=InterceptShip(npc=torpedo,ship=self.my_ship)
         #self.schedule_add_object(torpedo)
         self.other_ship=None
-        self.new_enemy_countdown=5000
+        self.new_enemy_countdown=50000
         self.respawn_player_countdown=5000
 
         #self.respawn_enemy()
@@ -88,10 +88,13 @@ class GameEngine:
         self.hud.set_controller(controller)
 
     def spawn_player(self,ship_name):
-        self.my_ship=get_ship_factory().get_ship(ship_name)   
-        self.my_ship.is_player=True     
-        #self.schedule_add_object(self.my_ship)        
-        self.add_decorator(ShipSpawnDecorator(position=Vec2d(0,0),ship=self.my_ship))
+        #self.my_ship=get_ship_factory().get_ship(ship_name)   
+        with open("test_ship.yaml") as f:
+            ship_data=yaml.load(f,Loader=yaml.FullLoader)
+            self.my_ship=MagnetileShip(from_dict=ship_data)
+            self.my_ship.is_player=True     
+            #self.schedule_add_object(self.my_ship)        
+            self.add_decorator(ShipSpawnDecorator(position=Vec2d(0,0),ship=self.my_ship))
 
 
     def respawn_enemy(self):
@@ -228,6 +231,9 @@ class GameEngine:
             print("camera zoom: ",self.camera.zoom)
             #print("fps: ",self.clock.get_fps())
             self.report_timer=0
+
+    def get_torpedo(self):
+        return Torpedo()
 
     def draw(self,screen):
         self.camera.set_screen(screen)        

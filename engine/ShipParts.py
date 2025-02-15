@@ -9,14 +9,24 @@ from behavior_tree.TurretBehavior import *
 ship_part_dict={} #dictionary of ship part classes
 
 class ShipPart:
-    def __init__(self,attachment=Vec2d(0,0),ship=None,attachment_angle=0):        
-        self.attachment=attachment
-        self.attachment_angle=attachment_angle
+    def __init__(self,attachment=Vec2d(0,0),ship=None,attachment_angle=0,from_dict=None):
+        if from_dict!=None:
+            self.attachment=Vec2d(from_dict["attachment"][0],from_dict["attachment"][1])
+            #print("self ",self)
+            #print("attachment ",self.attachment)
+            self.attachment_angle=from_dict["attachment_angle"]
+            self.radius=from_dict["radius"]
+            self.ship=None        
+        else:
+            self.attachment=attachment
+            self.attachment_angle=attachment_angle
+            self.radius=0 #for selecting
         self.ship=ship
-        self.radius=0 #for selecting
+        self.weapon_class=0 #not a weapon
+        
 
     def to_dict(self):
-        return {"attachment":self.attachment,"attachment_angle":self.attachment_angle,"radius":self.radius}
+        return {"attachment": [self.attachment[0],self.attachment[1]],"attachment_angle":self.attachment_angle,"radius":self.radius}
 
     def debug_print(self):
         print("attachment ",self.attachment)
@@ -43,32 +53,30 @@ class ShipPart:
         return None
 
 class Thruster(ShipPart):
-    def __init__(self,**kwargs):
-        defaultKwargs={"max_force":100,"attachment":Vec2d(0,0),"direction":Vec2d(0,1),"thrust_color":(255,255,0),"thrust_particle_size":10,"thrust_particle_speed":100,"thrust_particle_period":0.1}
-        kwargs = { **defaultKwargs, **kwargs }
-        ShipPart.__init__(self,kwargs["attachment"])
+    def __init__(self,from_dict=None,attachment=Vec2d(0,0),direction=Vec2d(0,1),max_force=2e3):
+        if from_dict!=None:
+            ShipPart.__init__(self,from_dict=from_dict)
+            self.max_force=from_dict["max_force"]
+        else:
+            ShipPart.__init__(self,attachment=attachment)
+            self.max_force=max_force
+        self.direction=direction
+        self.thrust_color=(255,255,0)
+        self.thrust_particle_size=10
+        self.thrust_particle_speed=100
+        self.thrust_particle_period=0.1
         self.throttle=0
-        self.max_force=kwargs["max_force"]
-        self.direction=kwargs["direction"] #direction that the thruster points in
+        
         #regarding thrust particles
-        self.time_since_last_thrust_particle=0
-        self.thrust_particle_period=kwargs["thrust_particle_period"]
-        self.thrust_particle_speed=kwargs["thrust_particle_speed"]
-        self.thrust_particle_size=kwargs["thrust_particle_size"]
-        self.thrust_color=kwargs["thrust_color"]
+        self.time_since_last_thrust_particle=0        
         self.sound_on=False #true if it should play a sound when on
 
     def to_dict(self):
         ret=super().to_dict()
         ret["type"]="Thruster"
-        ret["max_force"]=self.max_force
-        ret["direction"]=self.direction
+        ret["max_force"]=self.max_force       
         return ret
-    
-    @staticmethod
-    def from_dict(dict):
-        return Thruster(attachment=dict["attachment"],max_force=dict["max_force"],direction=dict["direction"])
-
+        
     def set_max_force(self,max_force):
         self.max_force=max_force
 
@@ -108,9 +116,12 @@ class Thruster(ShipPart):
 ship_part_dict["Thruster"]=Thruster
 
 class ReactionWheel(ShipPart):
-    def __init__(self,max_torque=100):
-        ShipPart.__init__(self)
-        self.max_torque=max_torque
+    def __init__(self,max_torque=100,from_dict=None):
+        ShipPart.__init__(self,from_dict=from_dict)
+        if from_dict!=None:
+            self.max_torque=from_dict["max_torque"]
+        else:
+            self.max_torque=max_torque
         self.throttle=0
         self.max_angular_velocity=3
 
@@ -118,11 +129,7 @@ class ReactionWheel(ShipPart):
         ret= super().to_dict()
         ret["type"]="ReactionWheel"
         ret["max_torque"]=self.max_torque
-        return ret
-
-    @staticmethod
-    def from_dict(dict):
-        return ReactionWheel(max_torque=dict["max_torque"])
+        return ret   
 
     def set_throttle(self,throttle): #throttle is a float from -1 to 1
         if throttle>1:
@@ -146,30 +153,27 @@ class ReactionWheel(ShipPart):
 ship_part_dict["ReactionWheel"]=ReactionWheel
     
 class ManeuverThruster(ShipPart):
-    def __init__(self,**kwargs):
-        ShipPart.__init__(self)
-        self.attachment=(0,0)        
+    def __init__(self,from_dict=None,attachment=Vec2d(0,0)):
+        if from_dict!=None:
+            ShipPart.__init__(self,from_dict=from_dict)
+        else:
+            ShipPart.__init__(self,attachment=attachment)        
         #attachment_side=kwargs.pop("attachment_side")
         #attachment_front=kwargs.pop("attachment_front")
         #attachment_back=kwargs.pop("attachment_back")
         attachment_side=10
         attachment_front=10
-        attachment_back=10
-        direction=kwargs.pop("direction",None)
+        attachment_back=10        
         ShipPart.__init__(self,Vec2d(0,0))        
-        self.thruster_2=Thruster(attachment=Vec2d(0,-attachment_back),direction=Vec2d(0,1),**kwargs)        
-        self.thruster_1=Thruster(attachment=Vec2d(0,attachment_front),direction=Vec2d(0,-1),**kwargs)        
-        self.thruster_3=Thruster(attachment=Vec2d(-attachment_side,0),direction=Vec2d(1,0),**kwargs)        
-        self.thruster_4=Thruster(attachment=Vec2d(attachment_side,0),direction=Vec2d(-1,0),**kwargs)
+        self.thruster_2=Thruster(attachment=Vec2d(0,-attachment_back),direction=Vec2d(0,1))
+        self.thruster_1=Thruster(attachment=Vec2d(0,attachment_front),direction=Vec2d(0,-1))
+        self.thruster_3=Thruster(attachment=Vec2d(-attachment_side,0),direction=Vec2d(1,0))
+        self.thruster_4=Thruster(attachment=Vec2d(attachment_side,0),direction=Vec2d(-1,0))
 
     def to_dict(self):
         ret=super().to_dict()
         ret["type"]="ManeuverThruster"
         return ret
-    
-    @staticmethod
-    def from_dict(dict):
-        return ManeuverThruster()
 
     def set_throttle_ns(self,throttle): #throttle between -1 and 1
         if throttle>0:
@@ -206,9 +210,12 @@ ship_part_dict["ManeuverThruster"]=ManeuverThruster
 
 
 class Cannon(ShipPart):
-    def __init__(self,ship=None,attachment=Vec2d(0,0),cooldown=0.2,projectile_speed=1300,attachment_angle=0):
-        super().__init__(ship=ship,attachment=attachment,attachment_angle=attachment_angle)        
-        
+    def __init__(self,ship=None,attachment=Vec2d(0,0),cooldown=0.2,projectile_speed=1300,attachment_angle=0,from_dict=None):
+        if from_dict!=None:
+            super().__init__(from_dict=from_dict)
+        else:
+            super().__init__(ship=ship,attachment=attachment,attachment_angle=attachment_angle)        
+                    
         self.cooldown=cooldown
         self.burst_size=3
         self.burst_cooldown=1
@@ -218,6 +225,7 @@ class Cannon(ShipPart):
         #self.projectile_color=projectile_color
         self.firing=False
         #self.direction=direction
+        self.weapon_class=1
 
     def fire(self):
         self.firing=True
@@ -225,11 +233,7 @@ class Cannon(ShipPart):
     def to_dict(self):
         ret=super().to_dict()
         ret["type"]="Cannon"
-        return ret
-    
-    @staticmethod
-    def from_dict(dict):
-        return Cannon(attachment=dict["attachment"],attachment_angle=dict["attachment_angle"])
+        return ret   
     
     def get_sprite(self,ship): 
         ret=DebugPolySprite([Vec2d(-3,0),Vec2d(-3,10),Vec2d(3,10),Vec2d(3,0)],(170,170,170))
@@ -244,11 +248,14 @@ class Cannon(ShipPart):
 
 
     def update(self,ticks,engine,ship):
-        self.direction=Vec2d(0,1).rotated(ship.body.angle+self.attachment.angle)
+        
+        
         self.time_since_last_shot+=ticks/1000
         if self.time_since_last_shot>self.burst_cooldown:
             self.burst_count=0
         if self.firing and self.time_since_last_shot>self.cooldown and self.burst_count<self.burst_size:
+            self.direction=Vec2d(0,1).rotated(ship.body.angle+self.attachment_angle)
+            
             get_sound_store().play_sound("laser")
             self.time_since_last_shot=0            
             projectile=Bullet()
@@ -266,26 +273,25 @@ class Cannon(ShipPart):
 ship_part_dict["Cannon"]=Cannon
 
 class TorpedoLauncher(ShipPart):
-    def __init__(self,ship=None,attachment=Vec2d(0,0),cooldown=1,launch_velocity=200,attachment_angle=0,ammunition_instance=None):
-        super().__init__(ship=ship)
-
-        self.attachment=attachment
-        self.attachment_angle=attachment_angle
+    def __init__(self,ship=None,attachment=Vec2d(0,0),cooldown=1,launch_velocity=200,attachment_angle=0,ammunition_instance=None,from_dict=None):
+        if from_dict!=None:
+            super().__init__(from_dict=from_dict)
+        else:
+            super().__init__(ship=ship,attachment=attachment,attachment_angle=attachment_angle)
+        
         self.cooldown=cooldown
         self.time_since_last_shot=0
         self.firing=False
         self.launch_velocity=launch_velocity
-        self.ammunition_instance=ammunition_instance
+        self.ammunition_instance=None
         self.ammo_count=2
+        self.torpedo_ahead=10
+        self.weapon_class=2
 
     def to_dict(self):
         ret=super().to_dict()
         ret["type"]="TorpedoLauncher"
-        return ret
-    
-    @staticmethod
-    def from_dict(dict):
-        return TorpedoLauncher(attachment=dict["attachment"],attachment_angle=dict["attachment_angle"])
+        return ret    
 
     def fire(self):
         self.firing=True
@@ -301,8 +307,9 @@ class TorpedoLauncher(ShipPart):
         if self.firing==True and self.time_since_last_shot>self.cooldown and self.ammo_count>0:
             self.direction=Vec2d(0,1).rotated(ship.body.angle+self.attachment_angle)
             self.time_since_last_shot=0
-            torpedo=self.ammunition_instance()
-            torpedo.set_position(ship.body.position+self.attachment.rotated(ship.body.angle))
+            torpedo=engine.get_torpedo()
+            #torpedo=self.ammunition_instance()
+            torpedo.set_position(ship.body.position+self.attachment.rotated(ship.body.angle)+self.direction*self.torpedo_ahead)
             torpedo.set_angle(ship.body.angle)
             torpedo.set_velocity(ship.body.velocity+self.direction*self.launch_velocity)
             torpedo.desired_direction=Vec2d(0,1).rotated(ship.body.angle)
@@ -339,9 +346,12 @@ class LaserCannon(ShipPart):
             #self.firing=False
 
 class TractorBeam(ShipPart):
-    def __init__(self,attachment=Vec2d(0,0)):
-        ShipPart.__init__(self)
-        self.attachment=attachment
+    def __init__(self,attachment=Vec2d(0,0),from_dict=None):
+        if from_dict!=None:
+            super().__init__(from_dict=from_dict)
+        else:
+            ShipPart.__init__(self)
+            self.attachment=attachment
         self.max_distance=100
         self.force_strength=10000
 
@@ -349,10 +359,6 @@ class TractorBeam(ShipPart):
         ret=super().to_dict()
         ret["type"]="TractorBeam"
         return ret
-    
-    @staticmethod
-    def from_dict(dict):
-        return TractorBeam(attachment=dict["attachment"])
 
     def update(self,ticks,engine,ship):
         objects=engine.point_query(ship.body.position,2*self.max_distance)
@@ -366,13 +372,15 @@ class TractorBeam(ShipPart):
 ship_part_dict["TractorBeam"]=TractorBeam
 
 class Turret(ShipPart):
-    def __init__(self,ship,attachment=Vec2d(0,0),attachment_angle=0):
-        super().__init__(attachment,ship)
+    def __init__(self,ship,attachment=Vec2d(0,0),attachment_angle=0,from_dict=None):
+        if from_dict!=None:
+            super().__init__(from_dict=from_dict)
+        else:
+            super().__init__(attachment,ship,attachment_angle=attachment_angle)
         #self.max_angle=-math.pi*3/4
         self.radius=20
         self.max_angle=math.pi/4
-        self.min_angle=-math.pi/4
-        self.attachment_angle=attachment_angle
+        self.min_angle=-math.pi/4        
         self.angle=self.attachment_angle
         #TODO handle straight down        
         self.weapon=Cannon(attachment=Vec2d(0,0),cooldown=0.2,projectile_speed=1600,attachment_angle=self.angle)   
@@ -381,11 +389,7 @@ class Turret(ShipPart):
     def to_dict(self):
         ret=super().to_dict()
         ret["type"]="Turret"
-        return ret
-    
-    @staticmethod
-    def from_dict(dict):
-        return Turret(attachment=dict["attachment"],attachment_angle=dict["attachment_angle"])
+        return ret  
 
     def get_position(self):
         return self.ship.body.position+self.attachment.rotated(self.ship.body.angle)
@@ -446,5 +450,5 @@ def load_part_from_dict(dict):
     if "type" in dict:
         part_type=dict["type"]
         if part_type in ship_part_dict:
-            return ship_part_dict[part_type].from_dict(dict)
+            return ship_part_dict[part_type](from_dict=dict)
     return None

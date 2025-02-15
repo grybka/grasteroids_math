@@ -16,12 +16,13 @@ class MagnetileSelection(UIPanel):
         self.choices=[]
         self.choices.append(SquareMagnetile())
         self.choices.append(RectMagnetile())
+        self.choices.append(RightTriangleMagnetile())
         self.choices.append(TallRightTriangleMagnetile())
         self.choices.append(IsocelesTriangleMagnetile())
         self.choices.append(EquilateralTriangleMagnetile())
 
 
-        contents=UIScrollingContainer(relative_rect=pygame.Rect(0, 0, 200, 350),manager=self.ui_manager,container=self,should_grow_automatically=False)
+        contents=UIScrollingContainer(relative_rect=pygame.Rect(0, 0, 200, 450),manager=self.ui_manager,container=self,should_grow_automatically=False)
         self.pick_color_button=UIButton(relative_rect=pygame.Rect(5, 5, 100, 30),
                                      text='Pick Color',
                                      manager=ui_manager,
@@ -30,6 +31,14 @@ class MagnetileSelection(UIPanel):
                                      text='Set Color',
                                      manager=ui_manager,
                                      container=self,anchors={"left_target":self.pick_color_button,"top_target":contents})
+        self.set_invert_button=UIButton(relative_rect=pygame.Rect(5, 5, 100, 30),
+                                     text='Invert',
+                                     manager=ui_manager,
+                                     container=self,anchors={"left":"left","top_target":self.pick_color_button})
+
+
+
+
         self.selections=[]
         last_choice=None
         for choice in self.choices:
@@ -83,6 +92,7 @@ class MagnetileSelection(UIPanel):
                     print("clicked on {}".format(self.choices[i]))
                     self.ship_builder_engine.magnetile_selected(self.choices[i])
                     #self.ui_manager.get_root_container().set_selected_magnetile(self.choices[i])
+                    self.ship_builder_engine.paint_color=None
                     return True      
         if event.type == pygame_gui.UI_BUTTON_PRESSED:
             if event.ui_element == self.pick_color_button:    
@@ -92,11 +102,17 @@ class MagnetileSelection(UIPanel):
                                                               initial_colour=self.current_colour)
                 self.colour_picker.set_blocking(True)
                 return True
-        if event.type == pygame_gui.UI_BUTTON_PRESSED:
             if event.ui_element == self.set_color_button:
-                ...
-                #TODO set color
+                if self.ship_builder_engine.paint_color is None:
+                    self.ship_builder_engine.paint_color=self.current_colour
+                else:
+                    self.ship_builder_engine.paint_color=None
                 return True
+            if event.ui_element == self.set_invert_button:
+                if self.ship_builder_engine.dragging_object is not None:
+                    self.ship_builder_engine.dragging_object=self.ship_builder_engine.dragging_object.invert()
+                return True
+
 
         if event.type == pygame_gui.UI_COLOUR_PICKER_COLOUR_PICKED:
                 self.set_current_color(event.colour)
@@ -115,7 +131,7 @@ class ComponentSelection(UIPanel):
         self.button_names=["Cannon","Torpedo Tube","Cannon Turret"]
         self.buttons=[]
         for name in self.button_names:
-            self.buttons.append(UIButton(relative_rect=pygame.Rect(5, 5, 100, 30),
+            self.buttons.append(UIButton(relative_rect=pygame.Rect(5, 5, 120, 30),
                                          text=name,
                                             manager=ui_manager,
                                             container=self,anchors={"left":"left","top_target":self.buttons[-1]} if len(self.buttons)>0 else {"left":"left","top":"top"}))
@@ -138,6 +154,12 @@ class ComponentSelection(UIPanel):
                 return True
         return handled
     
+class PropertiesPanel(UIPanel):
+    def __init__(self, ui_manager: pygame_gui.UIManager, ship_builder_engine,parent=None,anchors=None):
+        super().__init__(pygame.Rect(0,0,200,600), 1,ui_manager,parent_element=parent,container=parent,anchors=anchors)
+    
+    def process_event(self, event):
+        handled = super().process_event(event)
 
 
 class MagnetileDesigner(UIWindow):
@@ -153,6 +175,10 @@ class MagnetileDesigner(UIWindow):
                                      text='Components',
                                      manager=ui_manager,
                                      container=self,anchors={"left_target":self.tile_button})
+        self.properties_button=UIButton(relative_rect=pygame.Rect(5, 5, 100, 30),
+                                     text='Properties',
+                                     manager=ui_manager,
+                                     container=self,anchors={"left_target":self.component_button})
         self.pair_mode_button=UIButton(relative_rect=pygame.Rect(5, 750-35, 100, 30),
                                         text='Pair Mode',
                                         manager=ui_manager,
@@ -169,6 +195,8 @@ class MagnetileDesigner(UIWindow):
         self.magnetile_selection.hide()
         self.component_selection=ComponentSelection(ui_manager,ship_builder_engine,self,anchors={"left":"left","top_target":self.component_button})
         self.component_selection.hide()
+        self.properties_panel=PropertiesPanel(ui_manager,ship_builder_engine,self,anchors={"left":"left","top_target":self.component_button})
+        self.properties_panel.hide()
         self.active_panel=None
         self.save_file_dialog=None
         self.load_file_dialog=None
@@ -188,6 +216,12 @@ class MagnetileDesigner(UIWindow):
                 if self.active_panel is not None:
                     self.active_panel.hide()
                 self.active_panel=self.component_selection                
+                self.active_panel.show()                  
+                return True
+            if event.ui_element == self.properties_button:
+                if self.active_panel is not None:
+                    self.active_panel.hide()
+                self.active_panel=self.properties_panel
                 self.active_panel.show()                  
                 return True
             if event.ui_element == self.pair_mode_button:
@@ -222,3 +256,4 @@ class MagnetileDesigner(UIWindow):
             self.ship_builder_engine.load_ship(event.text)            
             return True
         return handled
+    

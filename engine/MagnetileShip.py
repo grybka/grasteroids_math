@@ -3,33 +3,40 @@ from engine.Magnetile import *
 from engine.ShipParts import *
 
 class MagnetileShip(MagnetileConstruction, ControllableShip):
-    def __init__(self,position=Vec2d(0,0),shape_fname=None):  
+    def __init__(self,position=Vec2d(0,0),shape_fname=None,from_dict=None):  
+        if from_dict is not None:
+            MagnetileConstruction.__init__(self,from_dict=from_dict["magnetiles"])
+            ControllableShip.__init__(self)                
+            self.ship_parts=[]
+            for part in from_dict["ship_parts"]:
+                self.add_part(load_part_from_dict(part))
+            #self.max_health=from_dict["max_health"]
+            #self.max_shields=from_dict["shields"]
+        else:
+            MagnetileConstruction.__init__(self,shape_fname=shape_fname) 
+            ControllableShip.__init__(self)                
+            self.ship_parts=[]
+            
+            #self.ship_parts.append(self.thruster)
+            #self.ship_parts.append(self.reaction_wheel)
+            #self.maneuver_thruster=ManeuverThruster(attachment_front=bbox[3],attachment_side=abs(bbox[0]),attachment_back=abs(bbox[1]),max_force=2e3,thrust_color=(128,128,128),thrust_particle_size=5)
+            
+            #self.ship_parts.append(self.maneuver_thruster)
+            #self.cannon=Cannon(attachment=Vec2d(0,bbox[3]))
+            #self.ship_parts.append(self.cannon)
+            #self.missile_launcher=TorpedoLauncher(attachment=Vec2d(0,bbox[3]+10),ammunition_instance=Torpedo)
+            #self.ship_parts.append(self.missile_launcher)
+            self.ship_parts.append(TractorBeam(attachment=Vec2d(0,0)))
 
-        MagnetileConstruction.__init__(self,shape_fname=shape_fname) 
-        ControllableShip.__init__(self)                
+        self.thruster=Thruster(max_force=2e4)
+        self.maneuver_thruster=ManeuverThruster()
+        self.reaction_wheel=ReactionWheel(max_torque=2e5)
+
         bbox=self.get_bbox()
         self.bbox=bbox
       
         #parts
-        self.shield_recharge_rate=0.1
-        self.ship_parts=[]
-        self.thruster=Thruster(attachment=Vec2d(0,bbox[1]),max_force=1e4)
-        self.ship_parts.append(self.thruster)
-        self.reaction_wheel=ReactionWheel(max_torque=2e5)
-        self.ship_parts.append(self.reaction_wheel)
-        self.maneuver_thruster=ManeuverThruster(attachment_front=bbox[3],attachment_side=abs(bbox[0]),attachment_back=abs(bbox[1]),max_force=2e3,thrust_color=(128,128,128),thrust_particle_size=5)
-        self.ship_parts.append(self.maneuver_thruster)
-        #self.cannon=Cannon(attachment=Vec2d(0,bbox[3]))
-        #self.ship_parts.append(self.cannon)
-        #self.missile_launcher=TorpedoLauncher(attachment=Vec2d(0,bbox[3]+10),ammunition_instance=Torpedo)
-        #self.ship_parts.append(self.missile_launcher)
-        self.ship_parts.append(TractorBeam(attachment=Vec2d(0,0)))
-        #self.ship_parts.append(Turret(self,attachment=Vec2d(0,bbox[1])))
-        #self.ship_parts.append(Turret(self,attachment=Vec2d(0,bbox[3]),attachment_angle=0))
-        #self.cannon=LaserCannon(attachment=Vec2d(0,bbox[3]))
-        #self.ship_parts.append(self.cannon)
-        #navigation
-        #self.navigation_mode=NavigationMode.MANUAL
+        self.shield_recharge_rate=0.1            
         
         num_magnetiles=len(self.magnetiles)
         
@@ -44,10 +51,34 @@ class MagnetileShip(MagnetileConstruction, ControllableShip):
         self.shields=10
         self.reactor_breach=False
         self.cargo_count=0 
+        #weapon labels
+        self.primary_weapon=None
+        self.secondary_weapon=None
+        for part in self.ship_parts:
+            if part.weapon_class==1:
+                self.primary_weapon=part
+            elif part.weapon_class==2:
+                self.secondary_weapon=part                
 
-    def get_active_weapon(self,engine):
-        return self.missile_launcher  
+    def to_dict(self):
+        ret={}
+        ret["magnetiles"]=MagnetileConstruction.to_dict(self)
+        ret["ship_parts"]=[]
+        for part in self.ship_parts:
+            ret["ship_parts"].append(part.to_dict())
+        ret["health"]=self.health
+        ret["shields"]=self.shields
+        return ret
+
+    #def get_active_weapon(self,engine):
+    #    return self.missile_launcher  
     
+    def get_primary_weapon(self,engine):
+        return self.primary_weapon
+    
+    def get_secondary_weapon(self,engine):            
+        return self.secondary_weapon
+
     def get_cargo_count(self,engine):
         return self.cargo_count
     
@@ -71,9 +102,12 @@ class MagnetileShip(MagnetileConstruction, ControllableShip):
         self.update_navigation()        
         #self.body.velocity=self.body.velocity*(1-self.inertial_dampening)
         #GameObject.update(self,ticks,engine)
-        ControllableShip.update(self,ticks,engine)
+        ControllableShip.update(self,ticks,engine)        
         for part in self.ship_parts:
             part.update(ticks,engine,self)  
+        self.reaction_wheel.update(ticks,engine,self)
+        self.maneuver_thruster.update(ticks,engine,self)
+        self.thruster.update(ticks,engine,self)
         if self.reactor_breach:
             self.explode(engine)   
         if self.shields<self.max_shields:
@@ -253,26 +287,8 @@ class MagnetileShip(MagnetileConstruction, ControllableShip):
             else:
                 self.missile_launcher.fire()
 
-    def to_dict(self):
-        ret={}
-        ret["magnetiles"]=MagnetileConstruction.to_dict(self)
-        ret["ship_parts"]=[]
-        for part in self.ship_parts:
-            ret["ship_parts"].append(part.to_dict())
-        ret["health"]=self.health
-        ret["shields"]=self.shields
-        return ret
-    @staticmethod
-    def from_dict(d):
-        ret=MagnetileShip()
-        ret.magnetiles=MagnetileConstruction.from_dict(d["magnetiles"])
-        print("loaded {} magnetiles".format(len(ret.magnetiles)))
-        ret.ship_parts=[]
-        for part in d["ship_parts"]:
-            ret.add_part(load_part_from_dict(part))
-        ret.health=d["health"]
-        ret.shields=d["shields"]
-        return ret
+
+   
 
         
 

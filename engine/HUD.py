@@ -66,14 +66,18 @@ class HUD:
         #right trigger controls firing
         axis5=self.controller.get_axis(5)
         if axis5>0:       
-            self.my_ship.cannon.firing=True
+            #self.my_ship.cannon.firing=True
+            self.my_ship.primary_weapon.firing=True
         else:   
-            self.my_ship.cannon.firing=False
+            #self.my_ship.cannon.firing=False
+            self.my_ship.primary_weapon.firing=False
         axis4=self.controller.get_axis(4)
         if axis4>0:
-            self.my_ship.missile_launcher.firing=True
+            self.my_ship.secondary_weapon.firing=True
+            #self.my_ship.missile_launcher.firing=True
         else:
-            self.my_ship.missile_launcher.firing=False      
+            self.my_ship.secondary_weapon.firing=False
+            #self.my_ship.missile_launcher.firing=False      
 
     def handle_event(self,event,ship):
         if ship is None:
@@ -126,7 +130,7 @@ class HUD:
                     pygame.draw.circle(screen,(255,0,0),indicator_pos,10,2)
         #Text for missiles
         if ship is not None:
-            ammo_count=ship.get_active_weapon(engine).ammo_count
+            ammo_count=ship.get_secondary_weapon(engine).ammo_count
             missile_text=self.my_font.render("Missiles: "+"{}".format(ammo_count),True,(255,255,255))
             screen.blit(missile_text,(10,10))
             #Text for cargo

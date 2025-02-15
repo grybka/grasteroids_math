@@ -193,7 +193,11 @@ class EshapeMagnetile(Magnetile):
 
    
 class MagnetileConstruction(GameObject):
-    def __init__(self,magnetiles=[],re_center=False,shape_fname=None):
+    def __init__(self,magnetiles=[],re_center=False,shape_fname=None,from_dict=None):
+        if from_dict is not None:           
+            for m in from_dict["magnetiles"]:
+                print("reading magnetile {}".format(m))
+                magnetiles.append(Magnetile.from_dict(m))            
         GameObject.__init__(self)
         #Ideally, the magnetile position are all relative to the construction with angle zero
         if shape_fname is not None:
@@ -247,7 +251,9 @@ class MagnetileConstruction(GameObject):
         self.sprite=MagnetileConstructionSprite(self)
 
         #self.re_center()
-    
+    def refresh_sprite(self):
+        self.sprite=MagnetileConstructionSprite(self)
+
     def remove_magnetile(self,magnetile):
         index=self.magnetiles.index(magnetile)
         self.magnetiles.remove(magnetile)
@@ -298,13 +304,6 @@ class MagnetileConstruction(GameObject):
                 maxx=max(maxx,v[0])
                 maxy=max(maxy,v[1])               
         return (minx,miny,maxx,maxy)
-        
-    @staticmethod
-    def from_dict(d):
-        ret=[]
-        for m in d["magnetiles"]:
-            ret.append(Magnetile.from_dict(m))
-        return MagnetileConstruction(ret)
         
     def save(self,filename):
         with open(filename,"w") as f:

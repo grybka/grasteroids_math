@@ -62,6 +62,7 @@ class ShipBuilderEngine(UIPanel):
 
         self.placement_space.step(1/1000)
         self.pair_mode=False
+        self.paint_color=None
 
     def process_event(self, event):
         handled = super().process_event(event)
@@ -94,7 +95,16 @@ class ShipBuilderEngine(UIPanel):
                     else:
                         abort("unknown dragging object",self.dragging_object)
 
-                        ...
+                        ...  
+                elif self.paint_color is not None:
+                    print("trying to color")
+                    pos=pygame.mouse.get_pos()
+                    world_pos=self.placement_camera.get_world_position(pos)
+                    selected_magnetile=self.the_ship.point_query(world_pos)
+                    if selected_magnetile is not None:
+                        print("set color")
+                        selected_magnetile.color=self.paint_color  
+                        self.the_ship.refresh_sprite()                                          
                 else:
                     pos=pygame.mouse.get_pos()
 
@@ -259,5 +269,5 @@ class ShipBuilderEngine(UIPanel):
         with open(filename, 'r') as file:
             ship_dict = yaml.load(file, Loader=yaml.FullLoader)
             self.remove_ship()            
-            self.the_ship.from_dict(ship_dict)
+            self.the_ship=MagnetileShip(from_dict=ship_dict)
             self.add_ship()
